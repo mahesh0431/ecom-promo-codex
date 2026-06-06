@@ -15,7 +15,11 @@ export const opportunityDtoSchema = z
 export const generateCampaignRequestSchema = z
   .object({
     productId: z.string().min(1),
-    optionalInstructions: z.string().min(1).optional()
+    optionalInstructions: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
+      z.string().min(1).optional()
+    )
   })
   .strict();
 

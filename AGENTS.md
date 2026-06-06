@@ -35,3 +35,5 @@ docs/exec-plans/completed/
 ```
 
 Each ExecPlan should be self-contained enough that a future agent can continue from the plan without needing chat history.
+
+For app-owned Codex SDK runs, use the single backend `OPENAI_API_KEY` and keep Codex home/workspace state under ignored `output/codex-runtime/`.

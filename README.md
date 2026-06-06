@@ -35,9 +35,13 @@ Run deterministic campaign APIs without live Codex:
 CODEX_GATEWAY=fake pnpm dev
 ```
 
-Use one backend `OPENAI_API_KEY` for live Codex and image-generation demo paths. `IMAGE_GENERATION_MODE` is only a non-secret runtime switch: use `fake` for deterministic tests/local fallback and `openai` for live image generation.
+Live OpenAI features use one server-side key. Set `OPENAI_API_KEY` once and the backend uses it for both Codex SDK runs and image generation.
 
-Run the real Codex SDK/MCP smoke when local Codex auth is available:
+Codex SDK runs use `gpt-5.5` with low reasoning by default. Codex state, plugin/skill cache, and session JSONL stay under ignored `output/codex-runtime/home`, and Codex runs from ignored `output/codex-runtime/workspace` instead of relying on your personal `~/.codex` profile.
+
+`IMAGE_GENERATION_MODE` is only a non-secret runtime switch: use `fake` for deterministic tests/local fallback and `openai` for live image generation.
+
+Run the real Codex SDK/MCP smoke when `OPENAI_API_KEY` is available:
 
 ```bash
 RUN_CODEX_LIVE=1 pnpm codex:smoke
@@ -48,6 +52,14 @@ Run the real OpenAI image smoke when `OPENAI_API_KEY` is available:
 ```bash
 RUN_IMAGE_LIVE=1 pnpm image:smoke
 ```
+
+Run the full live backend integration suite when `OPENAI_API_KEY` is available:
+
+```bash
+RUN_LIVE_INTEGRATION=1 pnpm integration:live
+```
+
+This uses an isolated `data/live-integration.sqlite` database and writes a non-secret report under `output/live-integration/`, including the Codex session JSONL filenames created under the app-owned Codex runtime home. `codex:smoke` and `image:smoke` remain useful lower-level diagnostics when the full workflow fails.
 
 Useful local checks:
 

@@ -1,8 +1,10 @@
 export function buildOpportunityDiscoveryPrompt() {
   return [
     "You are the Codex campaign agent for a small eCommerce promo demo.",
-    "Use the promo-campaign-mcp tools to inspect campaign overview and product review rows.",
+    "Use promo-campaign-mcp get_campaign_overview and list_products_for_campaign_review to inspect campaign overview and product review rows.",
     "Select 1 to 3 products that deserve campaign attention.",
+    "For each selected product, copy productId and sku exactly from list_products_for_campaign_review.",
+    "Do not invent, shorten, or transform productId values.",
     "Ground every reasoning field in concrete MCP facts such as stock, current-month sales, and signal facts.",
     "Do not generate image prompts or captions in this step.",
     "Do not edit files. Do not write database records. Return only structured JSON."
@@ -21,6 +23,7 @@ export function buildCampaignGenerationPrompt(input: {
   return [
     "You are the Codex campaign agent for a small eCommerce promo demo.",
     `Use promo-campaign-mcp get_product_campaign_context for productId ${input.productId}.`,
+    `Return productId exactly as ${input.productId}.`,
     optionalLine,
     "Generate one Instagram caption and one image prompt for the selected product.",
     "Ground reasoning in concrete MCP facts such as stock, current-month sales, and signal facts.",

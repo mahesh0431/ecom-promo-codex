@@ -7,6 +7,7 @@ const eslintConfig = [
       ".next/**",
       "coverage/**",
       "node_modules/**",
+      "output/**",
       "src/generated/**"
     ]
   }

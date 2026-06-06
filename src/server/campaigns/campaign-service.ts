@@ -22,9 +22,11 @@ export async function findCampaignOpportunitiesForUser(
   const productsById = new Map(
     products.map((product) => [product.productId, product])
   );
+  const productsBySku = new Map(products.map((product) => [product.sku, product]));
 
   const opportunities = result.opportunities.map((opportunity) => {
-    const product = productsById.get(opportunity.productId);
+    const product =
+      productsById.get(opportunity.productId) ?? productsBySku.get(opportunity.sku);
 
     if (!product || product.sku !== opportunity.sku) {
       throw new AppError(
@@ -34,7 +36,11 @@ export async function findCampaignOpportunitiesForUser(
       );
     }
 
-    return opportunity;
+    return {
+      ...opportunity,
+      productId: product.productId,
+      sku: product.sku
+    };
   });
 
   return { opportunities };

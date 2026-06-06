@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { POST as login } from "@/app/api/auth/login/route";
 import { loginWithPassword } from "@/server/auth/auth-service";
 import { hashPassword, verifyPasswordHash } from "@/server/auth/password";
 import {
@@ -37,5 +38,20 @@ describe("auth services", () => {
 
     await destroySession(created.rawToken);
     await expect(getSession(created.rawToken)).resolves.toBeNull();
+  });
+
+  test("maps malformed login JSON to validation errors", async () => {
+    const response = await login(
+      new Request("http://localhost/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{"
+      })
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "VALIDATION_ERROR" }
+    });
   });
 });

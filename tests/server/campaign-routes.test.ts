@@ -114,6 +114,40 @@ describe("campaign routes", () => {
       error: { code: "VALIDATION_ERROR" }
     });
   });
+
+  test("treats blank optional campaign instructions as not provided", async () => {
+    const productId = await getColdBrewProductId();
+    const request = await authenticatedRequest(
+      "http://localhost/api/campaigns/generate",
+      {
+        method: "POST",
+        body: JSON.stringify({ productId, optionalInstructions: "" })
+      }
+    );
+
+    const response = await generateCampaign(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.data.campaign.optionalInstructions).toBeNull();
+  });
+
+  test("maps malformed campaign generate JSON to validation errors", async () => {
+    const request = await authenticatedRequest(
+      "http://localhost/api/campaigns/generate",
+      {
+        method: "POST",
+        body: "{"
+      }
+    );
+
+    const response = await generateCampaign(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "VALIDATION_ERROR" }
+    });
+  });
 });
 
 async function authenticatedRequest(input: string, init: RequestInit = {}) {

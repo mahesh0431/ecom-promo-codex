@@ -4,6 +4,8 @@ Codex should feel agentic without getting unsafe or overbuilt.
 
 The app gives Codex read-only access to campaign/product context through a tiny MCP server called `promo-campaign-mcp`. MCP returns safe facts and summaries. Codex decides what to inspect, which products deserve campaign attention, and why. The backend validates and persists the final result.
 
+When the backend starts Codex through the Codex SDK, the MCP server must receive the same app `DATABASE_URL` as the current request/server process. This keeps Codex's tool context aligned with the database where campaigns are persisted.
+
 ## Tool Boundary
 
 MCP tools must be read-only for opportunity discovery.
@@ -16,6 +18,10 @@ Codex can:
 - inspect dated sales records;
 - request safe summary views;
 - request campaign context for a selected product.
+
+Codex runs use the backend `OPENAI_API_KEY`. The backend passes that value through the SDK `apiKey` option and does not expose raw secret env vars to the spawned Codex process.
+
+Codex SDK runs default to `gpt-5.5`, low reasoning, disabled web search, an app-owned Codex home at `output/codex-runtime/home`, and an app-owned working directory at `output/codex-runtime/workspace`. Codex may create its own state, system skills, and plugin marketplace cache inside that home; those generated files stay under ignored `output/` instead of `data/` or a developer's personal Codex profile.
 
 Codex cannot:
 
@@ -53,9 +59,10 @@ Output:
 ```text
 products:
   - productId
+    sku
     name
     category
-    price
+    priceCents
     availableQuantity
     unitsSoldThisMonth
     recentSalesSummary
@@ -79,6 +86,8 @@ product
 availableQuantity
 unitsSoldThisMonth
 recentSales
+recentSalesSummary
+signalFacts
 ```
 
 ## Opportunity Discovery Output
@@ -88,8 +97,10 @@ When Codex finds campaign opportunities, it should return structured output:
 ```text
 opportunities:
   - productId
+    sku
     signalSummary
     reasoning
+    confidence
 ```
 
 The UI highlights those products. Opportunity results do not need their own persistent table.
@@ -104,6 +115,7 @@ When Codex generates the Instagram campaign, it should return structured output:
 instagramCaption
 imagePrompt
 reasoning
+productId
 ```
 
 The backend saves this as a campaign. The saved `imagePrompt` is used by the image generation step.

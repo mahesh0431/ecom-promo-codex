@@ -1,5 +1,13 @@
-import { Codex, type McpToolCallItem, type SandboxMode } from "@openai/codex-sdk";
-import { z } from "zod";
+import type {
+  CodexOptions,
+  ModelReasoningEffort,
+  McpToolCallItem,
+  SandboxMode,
+  ThreadOptions
+} from "@openai/codex-sdk";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { z, ZodError } from "zod";
 
 import type {
   CampaignGenerationResult,
@@ -20,6 +28,25 @@ import {
 import { AppError } from "@/server/errors";
 
 const PROMO_MCP_SERVER_NAME = "promo-campaign-mcp";
+const CODEX_PROCESS_ENV_ALLOWLIST = [
+  "CODEX_CA_CERTIFICATE",
+  "COREPACK_HOME",
+  "HOME",
+  "NODE_ENV",
+  "PATH",
+  "PNPM_HOME",
+  "RUST_LOG",
+  "SHELL",
+  "SSL_CERT_FILE",
+  "TEMP",
+  "TMP",
+  "TMPDIR"
+] as const;
+const DEFAULT_CODEX_HOME = "output/codex-runtime/home";
+const DEFAULT_CODEX_WORKSPACE = "output/codex-runtime/workspace";
+const DEFAULT_CODEX_MODEL = "gpt-5.5";
+const DEFAULT_CODEX_REASONING_EFFORT: ModelReasoningEffort = "low";
+const DEFAULT_CODEX_SANDBOX_MODE: SandboxMode = "read-only";
 
 export type SdkRunEvidence = {
   mcpToolCalls: Array<{
@@ -50,36 +77,28 @@ export class SdkCodexGateway implements CodexGateway {
   constructor(private readonly options: SdkCodexGatewayOptions = {}) {}
 
   async findCampaignOpportunities(): Promise<OpportunityDiscoveryResult> {
-    const result = await this.runStructured(
+    return this.runStructured(
       buildOpportunityDiscoveryPrompt(),
       codexOpportunityOutputSchema
     );
-
-    return codexOpportunityOutputSchema.parse(result);
   }
 
   async generateInstagramCampaign(
     input: GenerateInstagramCampaignInput
   ): Promise<CampaignGenerationResult> {
-    const result = await this.runStructured(
+    return this.runStructured(
       buildCampaignGenerationPrompt(input),
       codexCampaignOutputSchema
     );
-
-    return codexCampaignOutputSchema.parse(result);
   }
 
-  private async runStructured(prompt: string, schema: z.ZodType) {
-    const codex = new Codex({
-      config: buildCodexConfig()
-    });
-    const thread = codex.startThread({
-      model: process.env.CODEX_MODEL,
-      sandboxMode: getSandboxMode(),
-      workingDirectory: getProjectRoot(),
-      approvalPolicy: "never",
-      skipGitRepoCheck: false
-    });
+  private async runStructured<T>(
+    prompt: string,
+    schema: z.ZodType<T>
+  ): Promise<T> {
+    const { Codex } = await import("@openai/codex-sdk");
+    const codex = new Codex(buildCodexOptions());
+    const thread = codex.startThread(buildCodexThreadOptions());
 
     try {
       const turn = await thread.run(prompt, {
@@ -90,7 +109,7 @@ export class SdkCodexGateway implements CodexGateway {
         this.captureMcpToolCalls(turn.items);
       }
 
-      return parseCodexJson(turn.finalResponse);
+      return schema.parse(parseCodexJson(turn.finalResponse));
     } catch (error) {
       if (isOutputError(error)) {
         throw new AppError(
@@ -126,6 +145,54 @@ export class SdkCodexGateway implements CodexGateway {
   }
 }
 
+export function buildCodexOptions(): CodexOptions {
+  const apiKey = getOpenAiApiKey();
+
+  if (!apiKey) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "OPENAI_API_KEY is required for Codex SDK runs.",
+      500
+    );
+  }
+
+  const options: CodexOptions = {
+    apiKey,
+    config: buildCodexConfig(),
+    env: buildCodexProcessEnv()
+  };
+
+  return options;
+}
+
+export function buildCodexProcessEnv() {
+  const env: Record<string, string> = {};
+
+  for (const key of CODEX_PROCESS_ENV_ALLOWLIST) {
+    const value = process.env[key];
+
+    if (value !== undefined) {
+      env[key] = value;
+    }
+  }
+
+  env.CODEX_HOME = ensureCodexHome();
+
+  return env;
+}
+
+export function buildCodexThreadOptions(): ThreadOptions {
+  return {
+    model: getCodexModel(),
+    modelReasoningEffort: getCodexReasoningEffort(),
+    sandboxMode: getSandboxMode(),
+    workingDirectory: ensureCodexWorkspace(),
+    approvalPolicy: "never",
+    skipGitRepoCheck: true,
+    webSearchMode: "disabled"
+  };
+}
+
 export function buildCodexConfig() {
   return {
     mcp_servers: {
@@ -133,6 +200,7 @@ export function buildCodexConfig() {
         command: "pnpm",
         args: ["exec", "tsx", "src/mcp/promo-campaign-mcp.ts"],
         cwd: getProjectRoot(),
+        env: buildPromoMcpEnv(),
         enabled: true,
         required: true,
         enabled_tools: [
@@ -159,6 +227,26 @@ export function buildCodexConfig() {
   };
 }
 
+export function buildPromoMcpEnv() {
+  const env: Record<string, string> = {};
+  const forwardedKeys = [
+    "DATABASE_URL",
+    "SESSION_COOKIE_NAME",
+    "SESSION_TTL_DAYS",
+    "NODE_ENV"
+  ];
+
+  for (const key of forwardedKeys) {
+    const value = process.env[key];
+
+    if (value) {
+      env[key] = value;
+    }
+  }
+
+  return env;
+}
+
 export function hasPromoMcpToolCall(evidence: SdkRunEvidence) {
   return evidence.mcpToolCalls.some(
     (call) =>
@@ -181,33 +269,47 @@ function parseCodexJson(raw: string) {
 function isOutputError(error: unknown) {
   return (
     error instanceof SyntaxError ||
+    error instanceof ZodError ||
     (error instanceof Error &&
       (error.message.includes("non-JSON") ||
-        error.message.includes("Invalid") ||
         error.name === "ZodError"))
   );
 }
 
 function getSandboxMode(): SandboxMode {
-  const mode = process.env.CODEX_SANDBOX_MODE;
+  return DEFAULT_CODEX_SANDBOX_MODE;
+}
 
-  if (!mode) {
-    return "read-only";
-  }
+export function getCodexHome() {
+  return join(getProjectRoot(), DEFAULT_CODEX_HOME);
+}
 
-  if (
-    mode === "read-only" ||
-    mode === "workspace-write" ||
-    mode === "danger-full-access"
-  ) {
-    return mode;
-  }
+export function ensureCodexHome() {
+  const codexHome = getCodexHome();
+  mkdirSync(codexHome, { recursive: true });
+  return codexHome;
+}
 
-  throw new AppError(
-    "VALIDATION_ERROR",
-    "CODEX_SANDBOX_MODE must be read-only, workspace-write, or danger-full-access.",
-    500
-  );
+export function getCodexWorkspace() {
+  return join(getProjectRoot(), DEFAULT_CODEX_WORKSPACE);
+}
+
+export function ensureCodexWorkspace() {
+  const codexWorkspace = getCodexWorkspace();
+  mkdirSync(codexWorkspace, { recursive: true });
+  return codexWorkspace;
+}
+
+export function getCodexModel() {
+  return DEFAULT_CODEX_MODEL;
+}
+
+export function getCodexReasoningEffort(): ModelReasoningEffort {
+  return DEFAULT_CODEX_REASONING_EFFORT;
+}
+
+function getOpenAiApiKey() {
+  return process.env.OPENAI_API_KEY?.trim();
 }
 
 function getProjectRoot() {

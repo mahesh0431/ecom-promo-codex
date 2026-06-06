@@ -7,7 +7,15 @@ export default defineConfig({
     globalSetup: ["./tests/setup/global-setup.ts"],
     setupFiles: ["./tests/setup/test-env.ts"],
     pool: "forks",
-    fileParallelism: false
+    fileParallelism: false,
+    exclude: [
+      "**/.git/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      "output/**",
+      "src/generated/**"
+    ]
   },
   resolve: {
     alias: {

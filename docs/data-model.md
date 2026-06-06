@@ -41,9 +41,10 @@ Represents the product catalog.
 ```text
 Product
 - id
+- sku
 - name
 - category
-- price
+- priceCents
 - availableQuantity
 - createdAt
 - updatedAt
@@ -108,6 +109,11 @@ CampaignImage
 - prompt
 - imageData
 - mimeType
+- variantIndex
+- model
+- size
+- status
+- errorMessage
 - createdAt
 ```
 

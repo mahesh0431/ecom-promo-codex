@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest";
 
+import type { CodexGateway } from "@/server/codex/codex-gateway";
 import { createFakeCodexGateway } from "@/server/codex/fake-codex-gateway";
 import {
   findCampaignOpportunitiesForUser,
@@ -29,6 +30,45 @@ describe("campaign service", () => {
     });
     expect(result.opportunities[0]?.reasoning).toContain("180 units");
     await expect(prisma.campaign.count()).resolves.toBe(0);
+  });
+
+  test("canonicalizes opportunity product ids from matching SKUs", async () => {
+    const user = await getSeededUser();
+    const products = await listProductsForCampaignReview();
+    const coldBrew = products.find(
+      (product) => product.sku === "SKU-COF-COLD-001"
+    );
+
+    if (!coldBrew) {
+      throw new Error("Cold Brew product missing");
+    }
+
+    const gateway: CodexGateway = {
+      async findCampaignOpportunities() {
+        return {
+          opportunities: [
+            {
+              productId: "invented-product-id",
+              sku: coldBrew.sku,
+              signalSummary: "High stock and low current-month sales.",
+              reasoning:
+                "MCP shows 180 units available and only 3 units sold this month.",
+              confidence: "high"
+            }
+          ]
+        };
+      },
+      async generateInstagramCampaign() {
+        throw new Error("Not used in this test.");
+      }
+    };
+
+    const result = await findCampaignOpportunitiesForUser(user.id, gateway);
+
+    expect(result.opportunities[0]).toMatchObject({
+      productId: coldBrew.productId,
+      sku: coldBrew.sku
+    });
   });
 
   test("generates and persists a campaign for the authenticated user", async () => {

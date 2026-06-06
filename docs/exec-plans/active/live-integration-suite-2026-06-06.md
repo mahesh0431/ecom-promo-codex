@@ -24,10 +24,12 @@ This plan intentionally does not build UI tests, browser automation, CI automati
 - [x] (2026-06-06 12:42Z) [M0] Exact draft sub-agent validation completed; blockers found and useful feedback folded in.
 - [x] (2026-06-06 12:45Z) [M0] Updated exact draft sub-agent validation completed; final DB override blocker found and folded in.
 - [x] (2026-06-06 12:46Z) [M0] Final exact draft sub-agent validation completed and approved for implementation.
-- [ ] (YYYY-MM-DD HH:MMZ) [M1] Isolated live integration database and app-server runner implemented.
-- [ ] (YYYY-MM-DD HH:MMZ) [M2] End-to-end HTTP workflow implemented.
-- [ ] (YYYY-MM-DD HH:MMZ) [M3] Artifact report, README notes, and generated-output ignore rules implemented.
-- [ ] (YYYY-MM-DD HH:MMZ) [M4] Full validation, live run evidence, and retrospective completed.
+- [x] (2026-06-06 13:04Z) [M1] Isolated live integration database and app-server runner implemented.
+- [x] (2026-06-06 13:04Z) [M2] End-to-end HTTP workflow implemented.
+- [x] (2026-06-06 13:04Z) [M3] Artifact report, README notes, and generated-output ignore rules implemented.
+- [x] (2026-06-06 13:04Z) [M4] Full validation, live run evidence, and retrospective completed.
+- [x] (2026-06-06 13:18Z) [M5] Codex SDK auth mode, MCP database forwarding, session JSONL reporting, and ungrounded fallback guard implemented.
+- [x] (2026-06-06 14:11Z) [M6] Single `OPENAI_API_KEY` Codex runtime, app-owned Codex home/workspace, `gpt-5.5`, and low reasoning verified.
 
 ## Surprises & Discoveries
 
@@ -41,6 +43,24 @@ This plan intentionally does not build UI tests, browser automation, CI automati
   Evidence: Review on 2026-06-06 flagged that `LIVE_INTEGRATION_DATABASE_URL="file:../data/dev.sqlite"` would let an implementation reset the dev DB while still following the plan.
 - Observation: Final exact-draft validation approved the plan with only low residual risks.
   Evidence: Review on 2026-06-06 confirmed prior blockers were addressed. Remaining low risks are cold `next dev` startup taking longer than 60000ms and the image byte assertion assuming JPEG remains the configured output.
+- Observation: Prisma schema reset for this repo can fail with a blank schema-engine error when `RUST_LOG=warn` is inherited.
+  Evidence: `RUN_LIVE_INTEGRATION=1 LIVE_INTEGRATION_SKIP_FLOW=1 pnpm integration:live` failed during `prisma db push --force-reset` until the runner forced `PRISMA_SCHEMA_ENGINE_LOG_LEVEL=trace` and `RUST_LOG=trace` for its Prisma setup children, matching the test global setup pattern.
+- Observation: Next/Turbopack needs the Codex packages treated as server externals.
+  Evidence: The first HTTP live run returned an immediate 500 at `POST /api/campaign-opportunities`. Direct diagnosis showed `@openai/codex-sdk` is import-only ESM and CJS-style resolution fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. The fix was dynamic SDK import in `sdk-codex-gateway.ts` plus `serverExternalPackages` for `@openai/codex-sdk` and `@openai/codex`.
+- Observation: Live Codex can produce correct product intent while drifting on internal product IDs.
+  Evidence: A focused live Codex smoke against the isolated DB reached MCP tool calls but returned an unknown CUID-like productId. The service now canonicalizes opportunity product IDs from matching seeded SKUs, and the prompt explicitly tells Codex to copy `productId` and `sku` exactly.
+- Observation: The first apparent full live HTTP pass was not strong enough proof.
+  Evidence: Inspection of Codex session JSONL showed Codex could run against MCP data that did not match the isolated live HTTP database, producing an `UNAVAILABLE` campaign text that the first suite version did not reject.
+- Observation: The promo MCP server must receive the same `DATABASE_URL` as the app server process.
+  Evidence: The backend now passes `env: buildPromoMcpEnv()` in the SDK MCP config, forwarding `DATABASE_URL` and session/runtime variables to `promo-campaign-mcp`.
+- Observation: Codex SDK uses the project-installed Codex CLI package and persists session JSONL files under the app-owned Codex home.
+  Evidence: The installed `@openai/codex-sdk` resolves the bundled `@openai/codex` CLI, and live runs create app-owned `output/codex-runtime/home/sessions/.../rollout-*.jsonl` files with `session_meta.payload.source === "exec"`.
+- Observation: Codex SDK inherits the Node process environment unless an explicit SDK `env` is provided.
+  Evidence: The SDK README documents the `env` option. The gateway now passes an allowlisted process env, sets an app-owned Codex home, omits raw secret env vars, and passes the single backend `OPENAI_API_KEY` through the SDK `apiKey` option.
+- Observation: The Codex smoke now proves the requested model/runtime defaults.
+  Evidence: `RUN_CODEX_LIVE=1 pnpm codex:smoke` passed and session JSONL showed `cwd: "output/codex-runtime/workspace"`, `model: "gpt-5.5"`, `effort: "low"`, and `sandbox: "read-only"`.
+- Observation: The full live HTTP suite passed after MCP database forwarding, single-key Codex runtime hardening, and ungrounded fallback detection.
+  Evidence: `RUN_LIVE_INTEGRATION=1 pnpm integration:live` completed and wrote `output/live-integration/2026-06-06T14-31-23-043Z.json` with two Codex session JSONL filenames, product count 10, selected SKU `SKU-COF-COLD-001`, campaign `cmq2gbqlx00019ppx91qms2l0`, image `cmq2gchtj00029ppxujwpqxbl`, 135935 JPEG bytes, and final live DB counts of 1 campaign and 1 campaign image.
 
 ## Decision Log
 
@@ -62,10 +82,39 @@ This plan intentionally does not build UI tests, browser automation, CI automati
 - Decision: Hard-reject unsafe live integration database paths before deleting or resetting any SQLite file.
   Rationale: A guarded live suite must not have a hidden path that can wipe `data/dev.sqlite`, `data/test.sqlite`, or the app's configured database.
   Date/Author: 2026-06-06 / Codex, after sub-agent review
+- Decision: Canonicalize Codex opportunity product IDs from matching SKUs before returning route data.
+  Rationale: The app owns product IDs. For a live demo, SKU is the stable product handle Codex is most likely to copy correctly; returning the canonical DB productId keeps the backend deterministic without accepting unknown products.
+  Date/Author: 2026-06-06 / Codex
+- Decision: Externalize Codex packages from the Next server bundle.
+  Rationale: `@openai/codex-sdk` is import-only ESM. The backend route should load it in Node at runtime rather than letting Turbopack resolve it like browser/server-bundled app code.
+  Date/Author: 2026-06-06 / Codex
+- Decision: Forward the app server's database/runtime env into the promo MCP server.
+  Rationale: The Codex agent and backend persistence must read the same seeded SQLite database during live integration. Otherwise Codex can ground its campaign in a different database than the route that saves the campaign.
+  Date/Author: 2026-06-06 / Codex
+- Decision: Use one backend OpenAI key and app-owned Codex runtime state.
+  Rationale: The application should not depend on a developer's personal Codex profile or a second Codex credential path. The backend uses `OPENAI_API_KEY` for Codex SDK runs and image generation, with Codex state under `output/codex-runtime/home` and workspace access under `output/codex-runtime/workspace`.
+  Date/Author: 2026-06-06 / Codex
 
 ## Outcomes & Retrospective
 
-Not started. Update after implementation and validation.
+Implemented and validated.
+
+The repo now has `RUN_LIVE_INTEGRATION=1 pnpm integration:live`, which prepares an isolated guarded SQLite database, starts a real Next server, logs in with the seeded demo user, exercises protected product APIs, runs live Codex opportunity discovery and campaign generation through HTTP routes, generates one live OpenAI image, fetches the raw persisted JPEG bytes, logs out, and writes a non-secret JSON report under `output/live-integration/`.
+
+Validation evidence from 2026-06-06:
+
+- `pnpm db:verify` passed. Current dev DB remained at the earlier known state: 1 user, 10 products, 40 productSales, 1 campaign, 4 campaignImages, 120 current-month units.
+- `pnpm typecheck` passed.
+- `pnpm lint` passed.
+- `pnpm test` passed: 14 files, 61 tests.
+- `pnpm build` passed.
+- `RUN_CODEX_LIVE=1 pnpm codex:smoke` passed and wrote Codex sessions under `output/codex-runtime/home`.
+- `RUN_LIVE_INTEGRATION=1 LIVE_INTEGRATION_SKIP_FLOW=1 pnpm integration:live` passed and wrote `output/live-integration/2026-06-06T13-24-14-759Z.json`, proving guarded reset, seed, server startup, and health.
+- `RUN_LIVE_INTEGRATION=1 pnpm integration:live` passed after MCP database forwarding and single-key Codex runtime hardening, writing `output/live-integration/2026-06-06T14-31-23-043Z.json`.
+- `RUN_LIVE_INTEGRATION=1 LIVE_INTEGRATION_SKIP_FLOW=1 LIVE_INTEGRATION_DATABASE_URL='file:../data/dev.sqlite' pnpm integration:live` failed before Prisma with `Live integration database basename must match live-integration*.sqlite.`
+- `pnpm db:verify` after the unsafe override check still showed the dev DB at 1 campaign and 4 campaignImages, confirming the guard did not mutate `data/dev.sqlite`.
+
+The main implementation lesson is that the live suite was worth doing now: it found real demo risks that unit tests did not catch, namely Next server bundling around the import-only Codex SDK, live Codex occasionally drifting on internal IDs, and the MCP server needing the same database env as the app server.
 
 ## Context and Orientation
 
@@ -134,7 +183,6 @@ Implementation details:
   - `CODEX_GATEWAY="sdk"`;
   - `IMAGE_GENERATION_MODE="openai"`;
   - existing `OPENAI_API_KEY`;
-  - `CODEX_SANDBOX_MODE` defaulting to `read-only`;
   - a test port from `LIVE_INTEGRATION_PORT` or a safe default such as `3210`.
 - Use this exact app-server command:
 
@@ -231,6 +279,8 @@ Implementation details:
   - app base URL;
   - database URL basename only, not full secret-bearing values;
   - Codex gateway mode;
+  - app-owned Codex home/workspace paths;
+  - Codex session JSONL filenames when discovered;
   - image generation mode;
   - health status;
   - product count;
@@ -369,7 +419,7 @@ The artifact is for local proof and debugging only. It should not be committed b
 
 The current known live validation state before this plan:
 
-- `RUN_CODEX_LIVE=1 pnpm codex:smoke` has passed in earlier Plan 2 validation.
+- `RUN_CODEX_LIVE=1 pnpm codex:smoke` has passed.
 - `RUN_IMAGE_LIVE=1 pnpm image:smoke` has passed in Plan 3 validation.
 - Plan 3 live image smoke left 1 campaign and 4 campaign images in `data/dev.sqlite`; this plan should avoid adding more rows to that database.
 
@@ -388,8 +438,11 @@ Environment:
 - `RUN_LIVE_INTEGRATION=1`
 - `OPENAI_API_KEY`
 - `CODEX_GATEWAY=sdk`
+- Codex model defaults to `gpt-5.5`
+- Codex reasoning defaults to `low`
+- Codex home defaults to `output/codex-runtime/home`
+- Codex workspace defaults to `output/codex-runtime/workspace`
 - `IMAGE_GENERATION_MODE=openai`
-- `CODEX_SANDBOX_MODE=read-only`
 - optional `LIVE_INTEGRATION_PORT`
 - optional `LIVE_INTEGRATION_DATABASE_URL`
 - optional `LIVE_INTEGRATION_SKIP_FLOW=1` for server-start smoke only

@@ -1,10 +1,15 @@
 import {
+  getCodexHome,
+  getCodexModel,
+  getCodexReasoningEffort,
   hasPromoMcpToolCall,
   SdkCodexGateway
 } from "@/server/codex/sdk-codex-gateway";
 import { listProductsForCampaignReview } from "@/server/products/product-service";
 
 async function main() {
+  loadLocalEnv();
+
   if (process.env.RUN_CODEX_LIVE !== "1") {
     console.log("Skipping live Codex smoke. Set RUN_CODEX_LIVE=1 to run it.");
     return;
@@ -46,7 +51,10 @@ async function main() {
   console.log(
     JSON.stringify(
       {
-        sandboxMode: process.env.CODEX_SANDBOX_MODE ?? "read-only",
+        sandboxMode: "read-only",
+        codexHome: getCodexHome(),
+        codexModel: getCodexModel(),
+        codexReasoningEffort: getCodexReasoningEffort(),
         opportunities: opportunities.opportunities.map((opportunity) => ({
           productId: opportunity.productId,
           sku: opportunity.sku,
@@ -63,6 +71,14 @@ async function main() {
       2
     )
   );
+}
+
+function loadLocalEnv() {
+  try {
+    process.loadEnvFile?.(".env");
+  } catch {
+    return;
+  }
 }
 
 main().catch((error: unknown) => {

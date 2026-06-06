@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import { AppError } from "@/server/errors";
 import { generateImagesForCampaign } from "@/server/images/campaign-image-service";
 import { errorResponse, successResponse } from "@/server/http/api-response";
 import { requireSession } from "@/server/http/cookies";
+import { readOptionalJsonRequest } from "@/server/http/request-json";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,9 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const session = await requireSession(request);
     const { campaignId } = await context.params;
-    const payload = generateImagesRequestSchema.parse(await readJson(request));
+    const payload = generateImagesRequestSchema.parse(
+      await readOptionalJsonRequest(request)
+    );
     const result = await generateImagesForCampaign({
       userId: session.user.id,
       campaignId,
@@ -34,19 +36,5 @@ export async function POST(request: Request, context: RouteContext) {
     return successResponse(result, 201);
   } catch (error) {
     return errorResponse(error);
-  }
-}
-
-async function readJson(request: Request) {
-  const text = await request.text();
-
-  if (!text.trim()) {
-    return undefined;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new AppError("VALIDATION_ERROR", "Invalid request payload.", 400);
   }
 }

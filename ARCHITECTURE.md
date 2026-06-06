@@ -86,10 +86,9 @@ The app should feel like a small campaign tool, not a marketing landing page.
 
 There are two auth concerns:
 
-1. **OpenAI/Codex runtime authentication**
-   - required so the backend can run Codex SDK;
-   - can use local Codex auth already configured on the machine;
-   - can also use API-key auth for a more reproducible local setup;
+1. **OpenAI runtime authentication**
+   - required so the backend can run Codex SDK and image generation;
+   - uses the server-side `OPENAI_API_KEY`;
    - should be checked during server startup, not requested through a second in-app popup.
 
 2. **Demo app authentication**
@@ -105,7 +104,7 @@ App auth:
   demo@promo.test / demo-password
 
 Codex SDK auth:
-  local Codex auth OR API-key auth on the runner machine
+  OPENAI_API_KEY on the backend
 
 Image generation auth:
   OPENAI_API_KEY on the backend

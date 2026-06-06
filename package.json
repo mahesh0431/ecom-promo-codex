@@ -20,7 +20,8 @@
     "db:verify": "tsx scripts/verify-seed.ts",
     "mcp:promo": "tsx src/mcp/promo-campaign-mcp.ts",
     "codex:smoke": "tsx scripts/codex-smoke.ts",
-    "image:smoke": "tsx scripts/image-smoke.ts"
+    "image:smoke": "tsx scripts/image-smoke.ts",
+    "integration:live": "tsx scripts/live-integration.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -308,9 +308,8 @@ Error mapping:
 
 Runtime env additions:
 
-    CODEX_MODEL optional, default chosen by Codex runtime if omitted
     CODEX_GATEWAY optional, allowed values sdk | fake, default sdk outside tests
-    CODEX_SANDBOX_MODE optional, default read-only for smoke validation
+    Codex model/reasoning/sandbox use app defaults for smoke validation
     RUN_CODEX_LIVE optional, set to 1 to run live smoke script
 
 No OpenAI image API key is needed in this plan.
@@ -352,7 +351,7 @@ At the end of this milestone, `pnpm mcp:promo` starts a stdio MCP server exposin
 
 Milestone 3: Implement Codex runner abstraction with mocked tests and one live smoke path.
 
-At the end of this milestone, backend code can ask a `CodexGateway` for opportunities or campaign content. Tests use a fake gateway through direct injection or `CODEX_GATEWAY=fake`; runtime defaults to the SDK gateway. A live smoke script uses `@openai/codex-sdk`, starts a thread, configures the local MCP server, requests structured output for both opportunity discovery and campaign generation, validates both, and captures evidence that Codex called `promo-campaign-mcp`. The work touches `src/server/codex/`, `scripts/codex-smoke.ts`, and tests. To validate deterministically, run tests. To validate live, run `RUN_CODEX_LIVE=1 pnpm codex:smoke` after confirming local Codex auth works. Expected result: fake tests pass, and live smoke either passes or records an auth/runtime blocker in this plan.
+At the end of this milestone, backend code can ask a `CodexGateway` for opportunities or campaign content. Tests use a fake gateway through direct injection or `CODEX_GATEWAY=fake`; runtime defaults to the SDK gateway. A live smoke script uses `@openai/codex-sdk`, starts a thread, configures the MCP server, requests structured output for both opportunity discovery and campaign generation, validates both, and captures evidence that Codex called `promo-campaign-mcp`. The work touches `src/server/codex/`, `scripts/codex-smoke.ts`, and tests. To validate deterministically, run tests. To validate live, run `RUN_CODEX_LIVE=1 pnpm codex:smoke` after confirming `OPENAI_API_KEY` is configured. Expected result: fake tests pass, and live smoke either passes or records an auth/runtime blocker in this plan.
 
 Milestone 4: Add opportunity-discovery API using Codex structured output.
 
@@ -374,7 +373,7 @@ Build the MCP server as a thin adapter over existing backend services. The MCP s
 
 Build the Codex runner behind an interface so most tests do not need live Codex. Use a fake implementation for route/service tests through dependency injection or explicit `CODEX_GATEWAY=fake` test configuration. Runtime API routes default to the real SDK gateway. The real implementation should use `@openai/codex-sdk` server-side and request structured output. If the SDK returns text, parse JSON and validate with Zod. If the SDK directly supports `outputSchema`, use it and still validate the final result with Zod.
 
-Configure MCP for the Codex SDK in the smallest reproducible way using the contract above. Prefer SDK config overrides. If the SDK cannot configure MCP directly, use a project-scoped `.codex/config.toml` only as a generated local fallback, add `.codex/` to `.gitignore`, and never commit local Codex config. Do not require users to edit global `~/.codex/config.toml` for the app demo. Record the exact approach in `Decision Log` after the implementation spike.
+Configure MCP for the Codex SDK in the smallest reproducible way using the contract above. Prefer SDK config overrides and the backend `OPENAI_API_KEY`; do not require users to edit global `~/.codex/config.toml` for the app demo. Record the exact approach in `Decision Log` after the implementation spike.
 
 Use `read-only` sandbox mode for the first live smoke. If the MCP server cannot access SQLite under read-only sandbox, record the evidence, switch to `workspace-write` for this local demo run only, and add a post-run check that `git status --short` has no unexpected file changes after Codex completes.
 
@@ -625,7 +624,7 @@ Live Codex smoke:
 
     RUN_CODEX_LIVE=1 pnpm codex:smoke
 
-Expected if local Codex auth/runtime is available:
+Expected if `OPENAI_API_KEY` and Codex runtime access are available:
 
     Codex uses `promo-campaign-mcp`
     returns 1 to 3 opportunities
@@ -721,11 +720,11 @@ Campaign generation intentionally writes a `Campaign` row each time it succeeds.
 
 If Codex SDK API details differ from the docs during implementation, inspect installed TypeScript types and record the final SDK usage in `Decision Log`.
 
-If MCP configuration through SDK overrides is not viable, try a project-scoped `.codex/config.toml` next. If that fallback is used, add `.codex/` to `.gitignore`, treat `.codex/config.toml` as generated local state, and do not commit it. Do not require global `~/.codex/config.toml` changes for normal app operation unless there is no SDK-supported alternative.
+If MCP configuration through SDK overrides is not viable, stop and re-check the current Codex SDK docs before adding any generated Codex config files.
 
 If the real Codex runner returns non-JSON or invalid JSON, improve prompts and output schema handling before weakening validation.
 
-If live Codex auth is missing, do not fake live success. Keep fake-gateway tests passing, record the blocker, and ask the user whether to configure auth or accept mock-only for now.
+If `OPENAI_API_KEY` is missing, do not fake live success. Keep fake-gateway tests passing, record the blocker, and ask the user whether to configure the key or accept mock-only for now.
 
 If sandbox read-only blocks local SQLite/MCP access, record the exact error and use the smallest sandbox relaxation needed for the local demo. After every live run, check `git status --short` to confirm Codex did not edit source files.
 
