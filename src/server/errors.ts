@@ -3,6 +3,8 @@ export type AppErrorCode =
   | "INVALID_CREDENTIALS"
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
+  | "CODEX_RUNTIME_ERROR"
+  | "CODEX_OUTPUT_ERROR"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {

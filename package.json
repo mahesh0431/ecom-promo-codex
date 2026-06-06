@@ -17,7 +17,9 @@
     "prisma:generate": "prisma generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx prisma/seed.ts",
-    "db:verify": "tsx scripts/verify-seed.ts"
+    "db:verify": "tsx scripts/verify-seed.ts",
+    "mcp:promo": "tsx src/mcp/promo-campaign-mcp.ts",
+    "codex:smoke": "tsx scripts/codex-smoke.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -30,6 +32,8 @@
     ]
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29",
+    "@openai/codex-sdk": "^0.137",
     "@prisma/adapter-better-sqlite3": "^7",
     "@prisma/client": "^7",
     "next": "^16",

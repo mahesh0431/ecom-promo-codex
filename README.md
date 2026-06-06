@@ -29,6 +29,18 @@ Run the local backend:
 pnpm dev
 ```
 
+Run deterministic campaign APIs without live Codex:
+
+```bash
+CODEX_GATEWAY=fake pnpm dev
+```
+
+Run the real Codex SDK/MCP smoke when local Codex auth is available:
+
+```bash
+RUN_CODEX_LIVE=1 pnpm codex:smoke
+```
+
 Useful local checks:
 
 ```bash
@@ -41,6 +53,13 @@ curl -i -c /tmp/ecom-promo-cookies.txt \
 curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/auth/session
 curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/products/overview
 curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/products
+curl -s -b /tmp/ecom-promo-cookies.txt \
+  -X POST http://localhost:3000/api/campaign-opportunities
+curl -s -b /tmp/ecom-promo-cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"productId":"<productId>","optionalInstructions":"Keep it warm and premium."}' \
+  http://localhost:3000/api/campaigns/generate
+curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/campaigns
 ```
 
 ## Demo Login
