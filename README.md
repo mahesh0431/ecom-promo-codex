@@ -35,10 +35,18 @@ Run deterministic campaign APIs without live Codex:
 CODEX_GATEWAY=fake pnpm dev
 ```
 
+Use one backend `OPENAI_API_KEY` for live Codex and image-generation demo paths. `IMAGE_GENERATION_MODE` is only a non-secret runtime switch: use `fake` for deterministic tests/local fallback and `openai` for live image generation.
+
 Run the real Codex SDK/MCP smoke when local Codex auth is available:
 
 ```bash
 RUN_CODEX_LIVE=1 pnpm codex:smoke
+```
+
+Run the real OpenAI image smoke when `OPENAI_API_KEY` is available:
+
+```bash
+RUN_IMAGE_LIVE=1 pnpm image:smoke
 ```
 
 Useful local checks:

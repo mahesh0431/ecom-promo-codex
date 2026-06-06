@@ -5,6 +5,17 @@ import { prisma } from "@/server/db/client";
 
 describe("seed data", () => {
   test("can be rerun without duplicating demo rows", async () => {
+    await prisma.campaignImage.deleteMany();
+    await prisma.campaign.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.user.deleteMany({
+      where: {
+        email: {
+          not: "demo@promo.test"
+        }
+      }
+    });
+
     await seedDemoData();
 
     await expect(prisma.user.count()).resolves.toBe(1);

@@ -20,7 +20,7 @@ If a new decision, workflow, interface, or implementation detail does not fit an
 
 Use `docs/PLANS.md` when creating implementation plans.
 
-When creating an ExecPlan, validate it with a fresh sub-agent review and update the plan with useful feedback before implementation.
+When creating an ExecPlan, draft it first, validate that exact draft with a fresh sub-agent, then update it with useful feedback before implementation.
 
 Store active ExecPlans in:
 

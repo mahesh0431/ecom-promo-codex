@@ -19,7 +19,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:verify": "tsx scripts/verify-seed.ts",
     "mcp:promo": "tsx src/mcp/promo-campaign-mcp.ts",
-    "codex:smoke": "tsx scripts/codex-smoke.ts"
+    "codex:smoke": "tsx scripts/codex-smoke.ts",
+    "image:smoke": "tsx scripts/image-smoke.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -37,6 +38,7 @@
     "@prisma/adapter-better-sqlite3": "^7",
     "@prisma/client": "^7",
     "next": "^16",
+    "openai": "^6.42.0",
     "react": "^19",
     "react-dom": "^19",
     "zod": "^4"

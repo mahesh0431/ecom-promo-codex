@@ -5,6 +5,8 @@ export type AppErrorCode =
   | "NOT_FOUND"
   | "CODEX_RUNTIME_ERROR"
   | "CODEX_OUTPUT_ERROR"
+  | "IMAGE_GENERATION_UNAVAILABLE"
+  | "IMAGE_GENERATION_ERROR"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {
