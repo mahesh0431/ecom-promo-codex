@@ -9,6 +9,7 @@ import {
   listCampaignsForUser
 } from "@/server/campaigns/campaign-service";
 import { prisma } from "@/server/db/client";
+import { createFakeImageGenerationGateway } from "@/server/images/fake-image-generation-gateway";
 import { listProductsForCampaignReview } from "@/server/products/product-service";
 
 describe("campaign service", () => {
@@ -73,30 +74,55 @@ describe("campaign service", () => {
 
   test("generates and persists a campaign for the authenticated user", async () => {
     const user = await getSeededUser();
-    const gateway = createFakeCodexGateway();
-    const coldBrew = await getColdBrewProductId();
+    const codexGateway = createFakeCodexGateway();
+    const imageGateway = createFakeImageGenerationGateway();
+    const coldBrew = await getColdBrewProduct();
 
-    const campaign = await generateCampaignForUser(
+    const result = await generateCampaignForUser(
       {
         userId: user.id,
-        productId: coldBrew,
+        productId: coldBrew.productId,
+        discountPercent: 15,
+        quantityLimit: 80,
+        imageVariants: 2,
         optionalInstructions: "  Keep it warm and premium.  "
       },
-      gateway
+      codexGateway,
+      imageGateway
     );
+    const { campaign, images } = result;
 
     expect(campaign.product.sku).toBe("SKU-COF-COLD-001");
+    expect(campaign.discountPercent).toBe(15);
+    expect(campaign.quantityLimit).toBe(80);
+    expect(campaign.initialImageVariantsRequested).toBe(2);
     expect(campaign.optionalInstructions).toBe("Keep it warm and premium.");
     expect(campaign.prompt).toContain("Cold Brew Concentrate");
+    expect(campaign.prompt).toContain("Discount: 15%");
+    expect(campaign.prompt).toContain("Quantity limit: 80 units");
     expect(campaign.prompt).toContain("Keep it warm and premium.");
     expect(campaign.instagramCaption).toContain("Cold Brew Concentrate");
+    expect(campaign.instagramCaption).toContain("15%");
     expect(campaign.imagePrompt).toContain("Cold Brew Concentrate");
+    expect(images).toHaveLength(2);
+    expect(images[0]).toMatchObject({
+      campaignId: campaign.campaignId,
+      variantIndex: 1,
+      mimeType: "image/jpeg",
+      status: "completed"
+    });
+    expect(images[0]).not.toHaveProperty("imageData");
 
     const stored = await prisma.campaign.findUnique({
-      where: { id: campaign.campaignId }
+      where: { id: campaign.campaignId },
+      include: { images: { orderBy: { variantIndex: "asc" } } }
     });
     expect(stored?.userId).toBe(user.id);
-    expect(stored?.productId).toBe(coldBrew);
+    expect(stored?.productId).toBe(coldBrew.productId);
+    expect(stored?.discountPercent).toBe(15);
+    expect(stored?.quantityLimit).toBe(80);
+    expect(stored?.initialImageVariantsRequested).toBe(2);
+    expect(stored?.images).toHaveLength(2);
   });
 
   test("lists and reads only campaigns owned by the user", async () => {
@@ -107,17 +133,29 @@ describe("campaign service", () => {
         passwordHash: "not-used"
       }
     });
-    const gateway = createFakeCodexGateway();
-    const coldBrew = await getColdBrewProductId();
+    const codexGateway = createFakeCodexGateway();
+    const imageGateway = createFakeImageGenerationGateway();
+    const coldBrew = await getColdBrewProduct();
 
-    const owned = await generateCampaignForUser(
-      { userId: user.id, productId: coldBrew },
-      gateway
+    const result = await generateCampaignForUser(
+      {
+        userId: user.id,
+        productId: coldBrew.productId,
+        discountPercent: 20,
+        quantityLimit: 50,
+        imageVariants: 1
+      },
+      codexGateway,
+      imageGateway
     );
+    const owned = result.campaign;
     await prisma.campaign.create({
       data: {
         userId: otherUser.id,
-        productId: coldBrew,
+        productId: coldBrew.productId,
+        discountPercent: 10,
+        quantityLimit: 25,
+        initialImageVariantsRequested: 1,
         prompt: "Other user prompt",
         instagramCaption: "Other user caption",
         imagePrompt: "Other user image prompt",
@@ -128,9 +166,27 @@ describe("campaign service", () => {
     const campaigns = await listCampaignsForUser(user.id);
     expect(campaigns).toHaveLength(1);
     expect(campaigns[0]?.campaignId).toBe(owned.campaignId);
+    expect(campaigns[0]).toMatchObject({
+      discountPercent: 20,
+      quantityLimit: 50,
+      initialImageVariantsRequested: 1,
+      imageCount: 1
+    });
 
-    await expect(getCampaignForUser(user.id, owned.campaignId)).resolves.toMatchObject({
-      campaignId: owned.campaignId
+    const filtered = await listCampaignsForUser(user.id, {
+      productId: coldBrew.productId
+    });
+    expect(filtered).toHaveLength(1);
+
+    await expect(
+      getCampaignForUser(user.id, owned.campaignId)
+    ).resolves.toMatchObject({
+      campaign: {
+        campaignId: owned.campaignId,
+        discountPercent: 20,
+        quantityLimit: 50
+      },
+      images: [{ campaignId: owned.campaignId, variantIndex: 1 }]
     });
     await expect(getCampaignForUser(otherUser.id, owned.campaignId)).rejects.toMatchObject({
       code: "NOT_FOUND"
@@ -143,10 +199,65 @@ describe("campaign service", () => {
 
     await expect(
       generateCampaignForUser(
-        { userId: user.id, productId: "missing-product" },
+        {
+          userId: user.id,
+          productId: "missing-product",
+          discountPercent: 15,
+          quantityLimit: 1,
+          imageVariants: 1
+        },
         gateway
       )
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  test("rejects quantity limits above available stock", async () => {
+    const user = await getSeededUser();
+    const gateway = createFakeCodexGateway();
+    const coldBrew = await getColdBrewProduct();
+
+    await expect(
+      generateCampaignForUser(
+        {
+          userId: user.id,
+          productId: coldBrew.productId,
+          discountPercent: 15,
+          quantityLimit: coldBrew.availableQuantity + 1,
+          imageVariants: 1
+        },
+        gateway
+      )
+    ).rejects.toMatchObject({
+      code: "VALIDATION_ERROR"
+    });
+  });
+
+  test("does not save a campaign when initial image generation fails", async () => {
+    const user = await getSeededUser();
+    const codexGateway = createFakeCodexGateway();
+    const coldBrew = await getColdBrewProduct();
+
+    await expect(
+      generateCampaignForUser(
+        {
+          userId: user.id,
+          productId: coldBrew.productId,
+          discountPercent: 15,
+          quantityLimit: 80,
+          imageVariants: 1
+        },
+        codexGateway,
+        {
+          async generateImages() {
+            throw new Error("provider exploded");
+          }
+        }
+      )
+    ).rejects.toMatchObject({
+      code: "IMAGE_GENERATION_ERROR",
+      status: 502
+    });
+    await expect(prisma.campaign.count()).resolves.toBe(0);
   });
 });
 
@@ -162,7 +273,7 @@ async function getSeededUser() {
   return user;
 }
 
-async function getColdBrewProductId() {
+async function getColdBrewProduct() {
   const products = await listProductsForCampaignReview();
   const coldBrew = products.find(
     (product) => product.sku === "SKU-COF-COLD-001"
@@ -172,5 +283,5 @@ async function getColdBrewProductId() {
     throw new Error("Cold Brew product missing");
   }
 
-  return coldBrew.productId;
+  return coldBrew;
 }

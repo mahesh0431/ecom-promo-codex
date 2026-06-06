@@ -1,6 +1,6 @@
 # Image Generation
 
-Image generation is a second-step workflow. It is part of the V0 demo, but it stays separate from the Codex SDK proof.
+Image generation is part of campaign creation in V0. It stays backend-owned and separate from the Codex SDK proof, but the user should see initial image variants created with the campaign.
 
 ## Role Split
 
@@ -8,11 +8,13 @@ Codex SDK generates:
 
 - Instagram caption;
 - image prompt;
-- campaign reasoning.
+- campaign reasoning;
+- campaign content that respects discount and quantity limit.
 
 The backend generates images:
 
-- reads the saved campaign image prompt;
+- uses the campaign image prompt returned by Codex during creation;
+- reads the saved campaign image prompt for later additional variants;
 - calls the OpenAI image generation API;
 - stores decoded image bytes in `CampaignImage.imageData`;
 - serves metadata through JSON routes and raw bytes through the image route.
@@ -20,16 +22,29 @@ The backend generates images:
 ## Flow
 
 ```text
+Campaign create form
+  -> user enters discount, quantity limit, and image variant count
+  -> Codex generates campaign content and image prompt
+  -> backend generates requested initial image variants
+  -> backend saves campaign and CampaignImage rows together
+  -> campaign detail shows saved content and images
+```
+
+Additional variants use the saved campaign:
+
+```text
 Saved campaign
-  -> user clicks Generate Image Variants
+  -> user clicks Generate Another Image Variant
   -> backend sends imagePrompt to OpenAI image generation
   -> backend stores CampaignImage rows
   -> future UI reads metadata and fetches raw image bytes
 ```
 
-## Fallback
+## Local and Failure Behavior
 
-If image generation is unavailable during local development, the app should still show the saved caption and image prompt. The final demo path should include generated image variants.
+Image generation is mandatory for campaign creation in V0. Local development and tests can use deterministic fake image generation. The final demo path should use live OpenAI image generation.
+
+If live image generation fails during campaign creation, the backend returns an image-generation error and does not save a partial campaign row.
 
 ## Runtime Auth
 

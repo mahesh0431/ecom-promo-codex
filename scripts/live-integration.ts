@@ -72,7 +72,12 @@ type LiveIntegrationReport = {
   productCount?: number;
   opportunityCount?: number;
   selectedProductSku?: string;
+  campaignDiscountPercent?: number;
+  campaignQuantityLimit?: number;
   campaignId?: string;
+  initialImageId?: string;
+  initialImageCount?: number;
+  additionalImageId?: string;
   imageId?: string;
   imageMimeType?: string;
   imageByteLength?: number;
@@ -99,6 +104,7 @@ type Product = {
   productId: string;
   sku: string;
   name: string;
+  availableQuantity: number;
 };
 
 type Opportunity = {
@@ -112,6 +118,9 @@ type Campaign = {
   product: {
     sku: string;
   };
+  discountPercent: number;
+  quantityLimit: number;
+  initialImageVariantsRequested: number;
   instagramCaption: string;
   imagePrompt: string;
   codexReasoning: string;
@@ -121,12 +130,17 @@ type CampaignSummary = {
   campaignId: string;
   productId: string;
   sku: string;
+  discountPercent: number;
+  quantityLimit: number;
+  initialImageVariantsRequested: number;
+  imageCount: number;
 };
 
 type CampaignImage = {
   imageId: string;
   campaignId: string;
   mimeType: string;
+  variantIndex: number;
   status: string;
 };
 
@@ -689,6 +703,7 @@ async function runHttpWorkflow(input: {
   const client = new IntegrationHttpClient(input.appBaseUrl, cookieJar);
   let products: Product[] = [];
   let campaign: Campaign | undefined;
+  let initialImage: CampaignImage | undefined;
   let image: CampaignImage | undefined;
 
   await runStep(input.report, "health", input.stepTimeoutMs, async (signal) => {
@@ -849,20 +864,34 @@ async function runHttpWorkflow(input: {
         throw new Error("No selected product is available for campaign generation.");
       }
 
+      if (selectedProduct.availableQuantity < 1) {
+        throw new Error("Selected product has no available stock for a promo.");
+      }
+
+      const discountPercent = 15;
+      const quantityLimit = Math.min(50, selectedProduct.availableQuantity);
+
       const body = await client.requestJson({
         method: "POST",
         path: "/api/campaigns/generate",
         expectedStatus: 201,
         body: {
           productId: selectedProduct.productId,
+          discountPercent,
+          quantityLimit,
+          imageVariants: 1,
           optionalInstructions:
             "Keep this concise for a live integration smoke."
         },
         signal
       });
-      const data = readData<{ campaign: Campaign }>(body, "campaign generation");
+      const data = readData<{ campaign: Campaign; images: CampaignImage[] }>(
+        body,
+        "campaign generation"
+      );
 
       campaign = data.campaign;
+      initialImage = data.images[0];
 
       if (
         !campaign.campaignId ||
@@ -871,6 +900,9 @@ async function runHttpWorkflow(input: {
         !campaign.codexReasoning ||
         campaign.productId !== selectedProduct.productId ||
         campaign.product.sku !== selectedProduct.sku ||
+        campaign.discountPercent !== discountPercent ||
+        campaign.quantityLimit !== quantityLimit ||
+        campaign.initialImageVariantsRequested !== 1 ||
         hasUngroundedFallbackText(campaign.instagramCaption) ||
         hasUngroundedFallbackText(campaign.imagePrompt) ||
         hasUngroundedFallbackText(campaign.codexReasoning)
@@ -880,7 +912,24 @@ async function runHttpWorkflow(input: {
         );
       }
 
+      if (
+        !Array.isArray(data.images) ||
+        data.images.length !== 1 ||
+        !initialImage ||
+        initialImage.campaignId !== campaign.campaignId ||
+        initialImage.variantIndex !== 1 ||
+        initialImage.mimeType !== "image/jpeg" ||
+        initialImage.status !== "completed" ||
+        "imageData" in initialImage
+      ) {
+        throw new Error("Campaign generation did not return initial image metadata.");
+      }
+
       input.report.campaignId = campaign.campaignId;
+      input.report.campaignDiscountPercent = discountPercent;
+      input.report.campaignQuantityLimit = quantityLimit;
+      input.report.initialImageId = initialImage.imageId;
+      input.report.initialImageCount = data.images.length;
     }
   );
 
@@ -890,10 +939,11 @@ async function runHttpWorkflow(input: {
     input.stepTimeoutMs,
     async (signal) => {
       assertCampaign(campaign);
+      assertImage(initialImage);
 
       const body = await client.requestJson({
         method: "GET",
-        path: "/api/campaigns",
+        path: `/api/campaigns?productId=${campaign.productId}`,
         expectedStatus: 200,
         signal
       });
@@ -902,12 +952,22 @@ async function runHttpWorkflow(input: {
         "campaign list"
       );
 
-      if (
-        !data.campaigns.some(
-          (recentCampaign) => recentCampaign.campaignId === campaign?.campaignId
-        )
-      ) {
+      const listed = data.campaigns.find(
+        (recentCampaign) => recentCampaign.campaignId === campaign?.campaignId
+      );
+
+      if (!listed) {
         throw new Error("Campaign list did not include the generated campaign.");
+      }
+
+      if (
+        listed.productId !== campaign.productId ||
+        listed.discountPercent !== campaign.discountPercent ||
+        listed.quantityLimit !== campaign.quantityLimit ||
+        listed.initialImageVariantsRequested !== 1 ||
+        listed.imageCount !== 1
+      ) {
+        throw new Error("Campaign list did not include expected promo terms.");
       }
     }
   );
@@ -918,6 +978,7 @@ async function runHttpWorkflow(input: {
     input.stepTimeoutMs,
     async (signal) => {
       assertCampaign(campaign);
+      assertImage(initialImage);
 
       const body = await client.requestJson({
         method: "GET",
@@ -925,20 +986,34 @@ async function runHttpWorkflow(input: {
         expectedStatus: 200,
         signal
       });
-      const data = readData<{ campaign: Campaign }>(body, "campaign detail");
+      const data = readData<{ campaign: Campaign; images: CampaignImage[] }>(
+        body,
+        "campaign detail"
+      );
 
       if (
         data.campaign.campaignId !== campaign.campaignId ||
-        data.campaign.imagePrompt !== campaign.imagePrompt
+        data.campaign.imagePrompt !== campaign.imagePrompt ||
+        data.campaign.discountPercent !== campaign.discountPercent ||
+        data.campaign.quantityLimit !== campaign.quantityLimit ||
+        data.campaign.initialImageVariantsRequested !== 1
       ) {
         throw new Error("Campaign detail did not match the generated campaign.");
+      }
+
+      if (
+        !data.images.some(
+          (detailImage) => detailImage.imageId === initialImage?.imageId
+        )
+      ) {
+        throw new Error("Campaign detail did not include the initial image.");
       }
     }
   );
 
   await runStep(
     input.report,
-    "image generation",
+    "additional image generation",
     input.stepTimeoutMs,
     async (signal) => {
       assertCampaign(campaign);
@@ -963,6 +1038,7 @@ async function runHttpWorkflow(input: {
       if (
         !image.imageId ||
         image.campaignId !== campaign.campaignId ||
+        image.variantIndex !== 2 ||
         image.mimeType !== "image/jpeg" ||
         image.status !== "completed" ||
         "imageData" in image
@@ -971,6 +1047,7 @@ async function runHttpWorkflow(input: {
       }
 
       input.report.imageId = image.imageId;
+      input.report.additionalImageId = image.imageId;
       input.report.imageMimeType = image.mimeType;
     }
   );
@@ -981,6 +1058,7 @@ async function runHttpWorkflow(input: {
     input.stepTimeoutMs,
     async (signal) => {
       assertCampaign(campaign);
+      assertImage(initialImage);
       assertImage(image);
 
       const body = await client.requestJson({
@@ -991,10 +1069,14 @@ async function runHttpWorkflow(input: {
       });
       const data = readData<{ images: CampaignImage[] }>(body, "image list");
 
-      if (
-        !data.images.some((listedImage) => listedImage.imageId === image?.imageId)
-      ) {
-        throw new Error("Image list did not include the generated image.");
+      const imageIds = new Set(data.images.map((listedImage) => listedImage.imageId));
+
+      if (!imageIds.has(initialImage.imageId) || !imageIds.has(image.imageId)) {
+        throw new Error("Image list did not include both generated images.");
+      }
+
+      if (data.images.length < 2) {
+        throw new Error("Image list did not show appended image variants.");
       }
     }
   );

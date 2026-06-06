@@ -17,10 +17,15 @@ describe("Codex prompts", () => {
   test("instructs campaign generation to echo the requested product id", () => {
     const prompt = buildCampaignGenerationPrompt({
       productId: "product-123",
+      discountPercent: 15,
+      quantityLimit: 80,
       optionalInstructions: "Keep it concise."
     });
 
     expect(prompt).toContain("productId product-123");
     expect(prompt).toContain("Return productId exactly as product-123");
+    expect(prompt).toContain("Discount: 15%");
+    expect(prompt).toContain("Quantity limit: 80 units");
+    expect(prompt).toContain("reflect these offer terms");
   });
 });

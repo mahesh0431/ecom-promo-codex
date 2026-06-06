@@ -12,13 +12,16 @@ export async function POST(request: Request) {
     const payload = generateCampaignRequestSchema.parse(
       await readJsonRequest(request)
     );
-    const campaign = await generateCampaignForUser({
+    const result = await generateCampaignForUser({
       userId: session.user.id,
       productId: payload.productId,
+      discountPercent: payload.discountPercent,
+      quantityLimit: payload.quantityLimit,
+      imageVariants: payload.imageVariants,
       optionalInstructions: payload.optionalInstructions
     });
 
-    return successResponse({ campaign }, 201);
+    return successResponse(result, 201);
   } catch (error) {
     return errorResponse(error);
   }

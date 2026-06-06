@@ -18,12 +18,11 @@ export async function generateImagesForCampaign(
   gateway?: ImageGenerationGateway
 ) {
   const campaign = await getOwnedCampaign(input.userId, input.campaignId);
-  const imageGateway = gateway ?? createImageGenerationGateway();
   const variants = normalizeVariants(input.variants);
-  const generatedImages = await generateWithAppErrorMapping(imageGateway, {
+  const generatedImages = await generateCampaignImageBytes({
     prompt: campaign.imagePrompt,
     variants
-  });
+  }, gateway);
 
   const created = await prisma.$transaction(async (tx) => {
     const latest = await tx.campaignImage.findFirst({
@@ -36,22 +35,56 @@ export async function generateImagesForCampaign(
     return Promise.all(
       generatedImages.map((image, index) =>
         tx.campaignImage.create({
-          data: {
+          data: createCampaignImageRecordData({
             campaignId: campaign.id,
             prompt: campaign.imagePrompt,
-            imageData: toPrismaBytes(image.bytes),
-            mimeType: image.mimeType,
-            variantIndex: nextVariantIndex + index,
-            model: image.model,
-            size: image.size,
-            status: "completed"
-          }
+            image,
+            variantIndex: nextVariantIndex + index
+          })
         })
       )
     );
   });
 
-  return { images: created.map(toImageMetadataDto) };
+  return { images: created.map(toCampaignImageMetadataDto) };
+}
+
+export async function generateCampaignImageBytes(
+  input: { prompt: string; variants: number },
+  gateway?: ImageGenerationGateway
+) {
+  assertSupportedImageVariantCount(input.variants);
+
+  const imageGateway = gateway ?? createImageGenerationGateway();
+  const generatedImages = await generateWithAppErrorMapping(imageGateway, input);
+
+  if (generatedImages.length !== input.variants) {
+    throw new AppError(
+      "IMAGE_GENERATION_ERROR",
+      "Image generation returned an unexpected number of variants.",
+      502
+    );
+  }
+
+  return generatedImages;
+}
+
+export function createCampaignImageRecordData(input: {
+  campaignId: string;
+  prompt: string;
+  image: GeneratedImage;
+  variantIndex: number;
+}) {
+  return {
+    campaignId: input.campaignId,
+    prompt: input.prompt,
+    imageData: toPrismaBytes(input.image.bytes),
+    mimeType: input.image.mimeType,
+    variantIndex: input.variantIndex,
+    model: input.image.model,
+    size: input.image.size,
+    status: "completed"
+  };
 }
 
 export async function listCampaignImagesForUser(
@@ -65,7 +98,7 @@ export async function listCampaignImagesForUser(
     orderBy: [{ variantIndex: "asc" }, { createdAt: "asc" }]
   });
 
-  return { images: images.map(toImageMetadataDto) };
+  return { images: images.map(toCampaignImageMetadataDto) };
 }
 
 export async function getRawCampaignImageForUser(input: {
@@ -119,6 +152,20 @@ function normalizeVariants(value: number | undefined) {
   return Math.min(Math.trunc(value), MAX_IMAGE_VARIANTS);
 }
 
+function assertSupportedImageVariantCount(value: number) {
+  if (
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value > MAX_IMAGE_VARIANTS
+  ) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `Image variants must be between 1 and ${MAX_IMAGE_VARIANTS}.`,
+      400
+    );
+  }
+}
+
 function toPrismaBytes(buffer: Buffer): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(buffer.length);
   bytes.set(buffer);
@@ -144,7 +191,7 @@ async function generateWithAppErrorMapping(
   }
 }
 
-function toImageMetadataDto(image: {
+export function toCampaignImageMetadataDto(image: {
   id: string;
   campaignId: string;
   mimeType: string;

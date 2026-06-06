@@ -44,8 +44,8 @@ async function generateFakeCampaign(
 
   return {
     productId: input.productId,
-    instagramCaption: `${context.product.name} is stocked and ready for a fresh promo. ${context.recentSalesSummary}. Bring it into your next order while supply is strong.`,
-    imagePrompt: `A product-focused promotional image of ${context.product.name} with clean retail styling, clear packaging, bright natural light, and a simple Instagram-ready composition.`,
-    reasoning: `${context.product.name} is a good promo candidate because MCP context shows ${context.availableQuantity} units available, ${context.unitsSoldThisMonth} units sold this month, and these signal facts: ${facts}.`
+    instagramCaption: `${context.product.name} is stocked and ready for a fresh ${input.discountPercent}% promo. ${context.recentSalesSummary}. Offer available for the first ${input.quantityLimit} units.`,
+    imagePrompt: `A product-focused promotional image of ${context.product.name} with clean retail styling, bright natural light, and a clear ${input.discountPercent}% off offer for ${input.quantityLimit} units.`,
+    reasoning: `${context.product.name} is a good promo candidate because MCP context shows ${context.availableQuantity} units available, ${context.unitsSoldThisMonth} units sold this month, and these signal facts: ${facts}. The user-entered offer is ${input.discountPercent}% off for ${input.quantityLimit} units.`
   };
 }

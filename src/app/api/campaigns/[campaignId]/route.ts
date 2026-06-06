@@ -14,9 +14,9 @@ export async function GET(request: Request, context: RouteContext) {
   try {
     const session = await requireSession(request);
     const { campaignId } = await context.params;
-    const campaign = await getCampaignForUser(session.user.id, campaignId);
+    const result = await getCampaignForUser(session.user.id, campaignId);
 
-    return successResponse({ campaign });
+    return successResponse(result);
   } catch (error) {
     return errorResponse(error);
   }

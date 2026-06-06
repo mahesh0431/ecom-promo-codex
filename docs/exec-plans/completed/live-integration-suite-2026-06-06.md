@@ -232,9 +232,9 @@ All JSON assertions must follow the app response wrapper:
    - assert returned product IDs exist in the seeded product list.
 8. `POST /api/campaigns/generate`
    - use the first opportunity product;
-   - pass a short optional instruction such as "Keep this concise for a live integration smoke.";
-   - expect status 201 with `{ data: { campaign } }`;
-   - expect persisted campaign with `instagramCaption`, `imagePrompt`, and `codexReasoning`.
+   - pass discount, quantity limit, image variant count, and a short optional instruction such as "Keep this concise for a live integration smoke.";
+   - expect status 201 with `{ data: { campaign, images } }`;
+   - expect persisted campaign terms with `instagramCaption`, `imagePrompt`, `codexReasoning`, and initial image metadata.
 9. `GET /api/campaigns`
    - expect the generated campaign in recent campaigns.
 10. `GET /api/campaigns/[campaignId]`

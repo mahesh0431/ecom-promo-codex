@@ -2,9 +2,11 @@
 
 ## Idea
 
-Retail Promo Agent helps an eCommerce team find products that need campaign attention and generate a simple Instagram promotion with Codex.
+Retail Promo Agent helps an eCommerce team find products that need campaign attention and create a simple promo campaign with Codex.
 
-Many promotion workflows start from a blank brief or a rushed guess. Retail Promo Agent starts from product and sales data. Codex inspects that context through a small read-only MCP layer for the app, identifies products with signals such as high stock and low recent sales, explains why they need attention, and helps generate a campaign for the selected product.
+Many promotion workflows start from a blank brief or a rushed guess. Retail Promo Agent starts from product and sales data. Codex inspects that context through a small read-only MCP layer for the app, identifies products with signals such as high stock and low recent sales, explains why they need attention, and helps create a promo campaign for the selected product.
+
+A promo campaign is more than a caption. It includes the offer terms the business needs to run: discount, quantity limit, campaign content, image prompt, and generated image variants.
 
 The product should feel like a focused workflow, not a generic chatbot. The user should always know what Codex looked at, why a product was selected, and what campaign output was generated.
 
@@ -13,13 +15,15 @@ The product should feel like a focused workflow, not a generic chatbot. The user
 1. The user starts the local demo app.
 2. The user signs in with the seeded demo account.
 3. The user sees product metrics and a product table.
-4. The user clicks `Find Campaign Opportunities`.
+4. The user clicks `Ask Codex to suggest promotions`.
 5. Codex uses read-only MCP tools to inspect product and sales context.
 6. Codex highlights the products that need campaign attention and explains why.
-7. The user selects one product and adds optional campaign instructions.
-8. Codex generates an Instagram caption and image prompt.
-9. The app saves and displays the campaign.
-10. On the campaign detail page, the user generates image variants from the saved image prompt.
+7. The user selects one product and starts campaign creation.
+8. The campaign create page asks for required offer terms: discount, quantity limit, and initial image variant count.
+9. The user can add optional campaign instructions.
+10. Codex generates campaign content and image prompts from the product context and offer terms.
+11. The backend generates the initial image variants, then saves and displays the campaign.
+12. The campaign detail page can generate additional image variants later.
 
 ## Campaign Output
 
@@ -27,6 +31,8 @@ A generated campaign can include:
 
 - selected product;
 - product and sales signal;
+- discount;
+- quantity limit;
 - Codex reasoning;
 - optional user instructions;
 - Instagram caption;
@@ -37,7 +43,7 @@ A generated campaign can include:
 
 **V0: Instagram Promo Demo**
 
-A local demo app that proves auth, persistence, Codex SDK usage, a small read-only MCP layer, Instagram campaign generation, and OpenAI image generation.
+A local demo app that proves auth, persistence, Codex SDK usage, a small read-only MCP layer, promo campaign creation, and OpenAI image generation.
 
 **V1: Realtime Voice**
 

@@ -44,7 +44,9 @@ async function main() {
   }
 
   const campaign = await gateway.generateInstagramCampaign({
-    productId: selected.productId
+    productId: selected.productId,
+    discountPercent: 15,
+    quantityLimit: 50
   });
 
   console.log("Live Codex smoke passed.");

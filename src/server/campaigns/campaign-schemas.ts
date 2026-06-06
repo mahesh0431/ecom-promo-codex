@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { codexConfidenceSchema } from "@/server/codex/codex-schemas";
+import { MAX_IMAGE_VARIANTS } from "@/server/images/image-generation-gateway";
 
 export const opportunityDtoSchema = z
   .object({
@@ -15,6 +16,9 @@ export const opportunityDtoSchema = z
 export const generateCampaignRequestSchema = z
   .object({
     productId: z.string().min(1),
+    discountPercent: z.number().int().min(1).max(90),
+    quantityLimit: z.number().int().positive(),
+    imageVariants: z.number().int().min(1).max(MAX_IMAGE_VARIANTS),
     optionalInstructions: z.preprocess(
       (value) =>
         typeof value === "string" && value.trim() === "" ? undefined : value,
@@ -39,6 +43,12 @@ export const campaignDtoSchema = z
     product: campaignProductDtoSchema,
     prompt: z.string().min(1),
     optionalInstructions: z.string().min(1).nullable(),
+    discountPercent: z.number().int().min(1).max(90),
+    quantityLimit: z.number().int().positive(),
+    initialImageVariantsRequested: z.number()
+      .int()
+      .min(1)
+      .max(MAX_IMAGE_VARIANTS),
     instagramCaption: z.string().min(1).max(2200),
     imagePrompt: z.string().min(1),
     codexReasoning: z.string().min(1),
@@ -52,8 +62,15 @@ export const campaignSummaryDtoSchema = z
     productId: z.string().min(1),
     productName: z.string().min(1),
     sku: z.string().min(1),
+    discountPercent: z.number().int().min(1).max(90),
+    quantityLimit: z.number().int().positive(),
+    initialImageVariantsRequested: z.number()
+      .int()
+      .min(1)
+      .max(MAX_IMAGE_VARIANTS),
     instagramCaption: z.string().min(1).max(2200),
     imagePrompt: z.string().min(1),
+    imageCount: z.number().int().nonnegative(),
     createdAt: z.string().datetime()
   })
   .strict();

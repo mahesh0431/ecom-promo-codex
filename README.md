@@ -77,7 +77,7 @@ curl -s -b /tmp/ecom-promo-cookies.txt \
   -X POST http://localhost:3000/api/campaign-opportunities
 curl -s -b /tmp/ecom-promo-cookies.txt \
   -H "Content-Type: application/json" \
-  -d '{"productId":"<productId>","optionalInstructions":"Keep it warm and premium."}' \
+  -d '{"productId":"<productId>","discountPercent":15,"quantityLimit":50,"imageVariants":1,"optionalInstructions":"Keep it warm and premium."}' \
   http://localhost:3000/api/campaigns/generate
 curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/campaigns
 ```
@@ -100,6 +100,7 @@ Password: demo-password
 - [Data model](docs/data-model.md)
 - [Codex MCP contract](docs/codex-tools.md)
 - [Image generation](docs/image-generation.md)
+- [Dashboard references](docs/dashboard/README.md)
 - [ExecPlan guide](docs/PLANS.md)
 
 ## License

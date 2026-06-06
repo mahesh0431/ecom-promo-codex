@@ -12,6 +12,7 @@ import { listProductsForCampaignReview } from "@/server/products/product-service
 describe("campaign routes", () => {
   beforeEach(async () => {
     process.env.CODEX_GATEWAY = "fake";
+    process.env.IMAGE_GENERATION_MODE = "fake";
     await prisma.campaignImage.deleteMany();
     await prisma.campaign.deleteMany();
   });
@@ -55,6 +56,9 @@ describe("campaign routes", () => {
         method: "POST",
         body: JSON.stringify({
           productId,
+          discountPercent: 15,
+          quantityLimit: 80,
+          imageVariants: 2,
           optionalInstructions: "Keep it warm and premium."
         })
       }
@@ -66,8 +70,19 @@ describe("campaign routes", () => {
     expect(generateResponse.status).toBe(201);
     expect(generateBody.data.campaign).toMatchObject({
       productId,
+      discountPercent: 15,
+      quantityLimit: 80,
+      initialImageVariantsRequested: 2,
       optionalInstructions: "Keep it warm and premium."
     });
+    expect(generateBody.data.images).toHaveLength(2);
+    expect(generateBody.data.images[0]).toMatchObject({
+      campaignId: generateBody.data.campaign.campaignId,
+      variantIndex: 1,
+      mimeType: "image/jpeg",
+      status: "completed"
+    });
+    expect(generateBody.data.images[0]).not.toHaveProperty("imageData");
 
     const listResponse = await listCampaigns(
       await authenticatedRequest("http://localhost/api/campaigns")
@@ -79,6 +94,21 @@ describe("campaign routes", () => {
     expect(listBody.data.campaigns[0].campaignId).toBe(
       generateBody.data.campaign.campaignId
     );
+    expect(listBody.data.campaigns[0]).toMatchObject({
+      productId,
+      discountPercent: 15,
+      quantityLimit: 80,
+      initialImageVariantsRequested: 2,
+      imageCount: 2
+    });
+
+    const filteredListResponse = await listCampaigns(
+      await authenticatedRequest(`http://localhost/api/campaigns?productId=${productId}`)
+    );
+    const filteredListBody = await filteredListResponse.json();
+
+    expect(filteredListResponse.status).toBe(200);
+    expect(filteredListBody.data.campaigns).toHaveLength(1);
 
     const detailResponse = await getCampaign(
       await authenticatedRequest(
@@ -96,6 +126,13 @@ describe("campaign routes", () => {
     expect(detailBody.data.campaign.campaignId).toBe(
       generateBody.data.campaign.campaignId
     );
+    expect(detailBody.data.campaign).toMatchObject({
+      discountPercent: 15,
+      quantityLimit: 80,
+      initialImageVariantsRequested: 2
+    });
+    expect(detailBody.data.images).toHaveLength(2);
+    expect(detailBody.data.images[0]).not.toHaveProperty("imageData");
   });
 
   test("maps invalid campaign generate payloads to validation errors", async () => {
@@ -121,7 +158,13 @@ describe("campaign routes", () => {
       "http://localhost/api/campaigns/generate",
       {
         method: "POST",
-        body: JSON.stringify({ productId, optionalInstructions: "" })
+        body: JSON.stringify({
+          productId,
+          discountPercent: 15,
+          quantityLimit: 80,
+          imageVariants: 1,
+          optionalInstructions: ""
+        })
       }
     );
 
@@ -130,6 +173,29 @@ describe("campaign routes", () => {
 
     expect(response.status).toBe(201);
     expect(body.data.campaign.optionalInstructions).toBeNull();
+  });
+
+  test("rejects campaign generate requests above available stock", async () => {
+    const product = await getColdBrewProduct();
+    const request = await authenticatedRequest(
+      "http://localhost/api/campaigns/generate",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          productId: product.productId,
+          discountPercent: 15,
+          quantityLimit: product.availableQuantity + 1,
+          imageVariants: 1
+        })
+      }
+    );
+
+    const response = await generateCampaign(request);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "VALIDATION_ERROR" }
+    });
   });
 
   test("maps malformed campaign generate JSON to validation errors", async () => {
@@ -172,6 +238,10 @@ async function authenticatedRequest(input: string, init: RequestInit = {}) {
 }
 
 async function getColdBrewProductId() {
+  return (await getColdBrewProduct()).productId;
+}
+
+async function getColdBrewProduct() {
   const products = await listProductsForCampaignReview();
   const coldBrew = products.find(
     (product) => product.sku === "SKU-COF-COLD-001"
@@ -181,5 +251,5 @@ async function getColdBrewProductId() {
     throw new Error("Cold Brew product missing");
   }
 
-  return coldBrew.productId;
+  return coldBrew;
 }

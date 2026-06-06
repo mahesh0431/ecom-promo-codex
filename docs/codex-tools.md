@@ -18,6 +18,7 @@ Codex can:
 - inspect dated sales records;
 - request safe summary views;
 - request campaign context for a selected product.
+- use user-provided offer terms when generating campaign content.
 
 Codex runs use the backend `OPENAI_API_KEY`. The backend passes that value through the SDK `apiKey` option and does not expose raw secret env vars to the spawned Codex process.
 
@@ -109,7 +110,7 @@ This output is produced by Codex, not by the MCP server.
 
 ## Campaign Generation Output
 
-When Codex generates the Instagram campaign, it should return structured output:
+When Codex generates promo campaign content, it should return structured output:
 
 ```text
 instagramCaption
@@ -118,7 +119,9 @@ reasoning
 productId
 ```
 
-The backend saves this as a campaign. The saved `imagePrompt` is used by the image generation step.
+The backend passes the selected product context plus user-entered offer terms, including discount and quantity limit, into the campaign generation prompt. Codex should reflect those terms in the caption and image prompt.
+
+The backend saves this as a campaign. The saved `imagePrompt` is used for the initial image variants during campaign creation and for later additional image variants.
 
 ## Future MCP Expansion
 

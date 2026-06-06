@@ -55,18 +55,21 @@ model ProductSale {
 }
 
 model Campaign {
-  id                   String          @id @default(cuid())
-  userId               String
-  productId            String
-  prompt               String
-  optionalInstructions String?
-  instagramCaption     String
-  imagePrompt          String
-  codexReasoning       String
-  createdAt            DateTime        @default(now())
-  user                 User            @relation(fields: [userId], references: [id])
-  product              Product         @relation(fields: [productId], references: [id])
-  images               CampaignImage[]
+  id                            String          @id @default(cuid())
+  userId                        String
+  productId                     String
+  prompt                        String
+  optionalInstructions          String?
+  discountPercent               Int             @default(15)
+  quantityLimit                 Int             @default(100)
+  initialImageVariantsRequested Int             @default(1)
+  instagramCaption              String
+  imagePrompt                   String
+  codexReasoning                String
+  createdAt                     DateTime        @default(now())
+  user                          User            @relation(fields: [userId], references: [id])
+  product                       Product         @relation(fields: [productId], references: [id])
+  images                        CampaignImage[]
 
   @@index([userId])
   @@index([productId])

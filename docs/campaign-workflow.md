@@ -1,85 +1,121 @@
 # Campaign Workflow
 
-The product workflow is focused on finding products that need campaign attention and generating a simple Instagram campaign.
+The product workflow is focused on finding products that need promotion attention and creating a small promo campaign with real offer terms.
 
-## Campaign Opportunities
+The app should stay simple. Codex is visible through useful suggestions and generated campaign output, not through an agent activity console.
+
+## Page 1: Products Dashboard
 
 The first screen shows a compact product and sales overview.
 
 Top metrics:
 
 - total products;
-- units sold this month;
+- sold this month;
 - available stock.
 
 Below the metrics, show a product table:
 
 ```text
-Product | Category | Price | Available Qty | Sold This Month | Signal | Action
+Select | Product | Category | Price | Available | Sold This Month | Suggested
 ```
 
-Primary action:
+The product name opens the product detail page. Selecting a row chooses one product for campaign creation. Only one product can be selected at a time.
+
+Primary actions:
 
 ```text
-Find Campaign Opportunities
+Ask Codex to suggest promotions
+Create campaign
 ```
 
-When the user clicks the button:
+`Create campaign` is enabled only after one product is selected. It navigates to the campaign create page for that product. It does not generate a campaign on the products page.
+
+When the user clicks `Ask Codex to suggest promotions`:
 
 1. Codex uses the small read-only MCP server to inspect product and sales context.
 2. Codex identifies the top products that need campaign attention.
-3. Codex explains the reason for each selected product.
-4. The UI highlights the selected products.
-5. Each selected product shows an action to create an Instagram campaign.
+3. The UI shows a popup with the shortlisted products and short reasons.
+4. The matching table rows are highlighted and marked as suggested.
+5. The user still chooses one product before creating a campaign.
 
-The goal is not to build a complex analytics dashboard. The goal is to show Codex using real data to decide what deserves a campaign.
+The goal is not to build a complex analytics dashboard. The goal is to show Codex using real data to help the user choose a product.
 
-The first screen can also show a small `Recent Campaigns` section with the latest saved campaigns. This proves persistence without creating a full run-history system.
+Visual references:
 
-## Instagram Campaign Generator
+- `docs/dashboard/simple-products-dashboard-02.png` for the simple dashboard body.
+- `docs/dashboard/products-campaign-flow-popup.png` for the Codex suggestion popup and highlighted-row idea.
 
-The second screen is split into three simple blocks.
+## Page 2: Product Detail And Campaign History
 
-### Product Context
+Clicking a product opens a product detail page.
 
 Show:
 
 - product name;
+- SKU;
 - category;
 - price;
 - available quantity;
 - sold this month;
-- why Codex selected it.
+- existing campaigns for that product.
 
-### Prompt
+Clicking an existing campaign opens the campaign detail page.
 
-Show:
+This page is for viewing product context and past campaigns. Fresh campaign generation starts from the campaign create page.
 
-- a default campaign prompt based on the product context;
-- an optional instructions input;
-- a `Generate Instagram Campaign` button.
+## Page 3: Campaign Create And Detail
 
-The user can adjust the instruction text and regenerate.
+Selecting one product on the products page and clicking `Create campaign` opens the campaign create page.
 
-### Campaign Preview
+Required campaign setup fields:
 
-Show:
+- discount;
+- quantity limit;
+- initial image variant count.
 
+Optional field:
+
+- campaign instructions.
+
+Main action:
+
+```text
+Generate
+```
+
+When the user clicks `Generate`:
+
+1. The backend validates the selected product, discount, quantity limit, image variant count, and optional instructions.
+2. Codex receives product context, product sales signals, and the offer terms.
+3. Codex generates campaign content and an image prompt.
+4. The backend generates the requested initial image variants.
+5. The backend saves the campaign and image rows.
+6. The UI shows the generated campaign result.
+
+The campaign detail state shows:
+
+- selected product;
+- discount;
+- quantity limit;
+- Codex reasoning;
 - Instagram caption;
 - image prompt;
-- generated image variants on the campaign detail view.
+- generated image variants.
 
-Keep this simple. The current workflow should stay focused on campaign generation and image creation.
+The campaign detail page can also offer a later action to generate another image variant from the saved image prompt and optional custom guidance.
 
 ## Workflow Story
 
 ```text
 Product and sales data
   -> promo-campaign-mcp exposes safe read-only context
-  -> Codex finds campaign opportunities
-  -> user selects a product
-  -> Codex generates Instagram content and image prompts
+  -> Codex suggests products that need promotion attention
+  -> user selects one product
+  -> user sets discount, quantity limit, and initial image count
+  -> Codex generates campaign content and image prompt
+  -> backend generates initial image variants
   -> app saves and displays the campaign
-  -> image generation creates and saves image variants
-  -> recent campaigns shows the saved result
+  -> product detail shows campaign history
+  -> campaign detail can generate additional image variants later
 ```

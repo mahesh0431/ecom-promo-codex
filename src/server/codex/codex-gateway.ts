@@ -5,6 +5,8 @@ import type {
 
 export type GenerateInstagramCampaignInput = {
   productId: string;
+  discountPercent: number;
+  quantityLimit: number;
   optionalInstructions?: string | null;
 };
 

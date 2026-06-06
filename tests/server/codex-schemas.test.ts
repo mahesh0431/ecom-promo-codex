@@ -119,16 +119,66 @@ describe("campaign API contract schemas", () => {
     expect(
       generateCampaignRequestSchema.parse({
         productId: "product-1",
+        discountPercent: 15,
+        quantityLimit: 80,
+        imageVariants: 2,
         optionalInstructions: "Keep the tone playful."
       })
     ).toEqual({
       productId: "product-1",
+      discountPercent: 15,
+      quantityLimit: 80,
+      imageVariants: 2,
       optionalInstructions: "Keep the tone playful."
     });
 
-    expect(generateCampaignRequestSchema.parse({ productId: "product-1" })).toEqual({
-      productId: "product-1"
+    expect(
+      generateCampaignRequestSchema.parse({
+        productId: "product-1",
+        discountPercent: 15,
+        quantityLimit: 80,
+        imageVariants: 1,
+        optionalInstructions: ""
+      })
+    ).toEqual({
+      productId: "product-1",
+      discountPercent: 15,
+      quantityLimit: 80,
+      imageVariants: 1
     });
+  });
+
+  test("rejects generate campaign requests missing promo terms", () => {
+    expect(() =>
+      generateCampaignRequestSchema.parse({ productId: "product-1" })
+    ).toThrow();
+
+    expect(() =>
+      generateCampaignRequestSchema.parse({
+        productId: "product-1",
+        discountPercent: 0,
+        quantityLimit: 80,
+        imageVariants: 1
+      })
+    ).toThrow();
+
+    expect(() =>
+      generateCampaignRequestSchema.parse({
+        productId: "product-1",
+        discountPercent: 15,
+        quantityLimit: 0,
+        imageVariants: 1
+      })
+    ).toThrow();
+
+    expect(() =>
+      generateCampaignRequestSchema.parse({
+        productId: "product-1",
+        discountPercent: 15,
+        quantityLimit: 80,
+        imageVariants: 3
+      })
+    ).toThrow();
   });
 
   test("parses campaign DTOs and summaries", () => {
@@ -143,6 +193,9 @@ describe("campaign API contract schemas", () => {
       },
       prompt: "Generate a promo campaign.",
       optionalInstructions: null,
+      discountPercent: 15,
+      quantityLimit: 80,
+      initialImageVariantsRequested: 2,
       instagramCaption: "Cold brew is stocked and ready.",
       imagePrompt: "Product-focused cold brew promotional image.",
       codexReasoning: "MCP shows 180 units available and 3 sold this month.",
@@ -156,8 +209,12 @@ describe("campaign API contract schemas", () => {
         productId: "product-1",
         productName: "Cold Brew Concentrate",
         sku: "SKU-COF-COLD-001",
+        discountPercent: 15,
+        quantityLimit: 80,
+        initialImageVariantsRequested: 2,
         instagramCaption: "Cold brew is stocked and ready.",
         imagePrompt: "Product-focused cold brew promotional image.",
+        imageCount: 2,
         createdAt: "2026-06-06T12:00:00.000Z"
       })
     ).toMatchObject({

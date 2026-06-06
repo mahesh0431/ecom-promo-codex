@@ -9,8 +9,10 @@ The app keeps the workflow simple:
 1. Start from product and sales data.
 2. Let Codex inspect the data through a small read-only MCP layer.
 3. Let Codex choose products that need campaign attention.
-4. Generate an Instagram campaign for one selected product.
-5. Generate and persist campaign images using the OpenAI image generation API.
+4. Let the user create a promo campaign for one selected product.
+5. Capture required offer terms such as discount and quantity limit.
+6. Generate campaign content and initial campaign images.
+7. Persist the campaign, offer terms, and image variants.
 
 This is intentionally not a full commerce platform.
 
@@ -27,7 +29,7 @@ It should prove:
 - local durable persistence;
 - Codex SDK usage;
 - Codex access to product and sales context through a tiny MCP server;
-- Instagram campaign generation;
+- promo campaign generation with discount and quantity limit;
 - OpenAI image generation;
 - saved campaign images and recent campaigns.
 
@@ -76,9 +78,16 @@ The UI should be simple and demo-focused. Use shadcn/ui and Tailwind CSS instead
 V0 screens:
 
 1. Login.
-2. Campaign opportunities.
-3. Campaign detail and image generation.
-4. Recent campaigns.
+2. Products dashboard with product metrics, product sales table, Codex suggestions, and single-product selection.
+3. Product detail page with product context and existing campaigns for that product.
+4. Campaign create page for a selected product, including discount, quantity limit, initial image variant count, optional instructions, and a `Generate` action.
+5. Campaign detail page showing generated content, image prompt, saved images, and an action to generate additional image variants.
+
+Product-row navigation and campaign creation are separate:
+
+- clicking a product opens the product detail and campaign history;
+- selecting one product and clicking `Create campaign` opens the campaign create page;
+- clicking an existing campaign opens the campaign detail page.
 
 The app should feel like a small campaign tool, not a marketing landing page.
 
@@ -120,7 +129,7 @@ Codex SDK owns:
 - selecting campaign opportunities;
 - explaining why products need attention;
 - generating Instagram captions;
-- generating image prompts.
+- generating image prompts from product context and offer terms.
 
 The MCP server owns:
 
@@ -134,6 +143,8 @@ The backend owns:
 - app authentication;
 - persistence;
 - MCP server implementation;
+- offer-term validation;
+- campaign creation orchestration;
 - image generation API calls;
 - image storage;
 - response validation;

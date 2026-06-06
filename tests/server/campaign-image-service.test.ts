@@ -190,6 +190,9 @@ async function createCampaign(
     data: {
       userId,
       productId: product.productId,
+      discountPercent: 15,
+      quantityLimit: 50,
+      initialImageVariantsRequested: 1,
       prompt: "Campaign prompt",
       instagramCaption: "Caption",
       imagePrompt: input.imagePrompt ?? "Saved image prompt",

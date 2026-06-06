@@ -16,7 +16,7 @@ The seed process should create:
 - a small product catalog;
 - dated product sales records.
 
-After the seed runs, the SQLite database belongs to the local app instance. Generated campaigns and generated images are saved into that local database.
+After the seed runs, the SQLite database belongs to the local app instance. Generated campaigns, offer terms, and generated images are saved into that local database.
 
 This keeps the demo reproducible without requiring an external database or manual data entry.
 
@@ -73,7 +73,7 @@ Product 1 -> many ProductSale
 
 ## Campaign
 
-Represents one generated Instagram campaign for one product.
+Represents one generated promo campaign for one product.
 
 ```text
 Campaign
@@ -82,6 +82,9 @@ Campaign
 - productId
 - prompt
 - optionalInstructions
+- discountPercent
+- quantityLimit
+- initialImageVariantsRequested
 - instagramCaption
 - imagePrompt
 - codexReasoning
@@ -125,6 +128,8 @@ Campaign 1 -> many CampaignImage
 
 For the current app, storing image data in the database is acceptable because it keeps the system self-contained. This can move to file or object storage later.
 
+Initial image variants are generated as part of campaign creation. Additional variants can be generated later and appended to the same campaign.
+
 ## Demo Queries
 
 Useful query ideas:
@@ -132,6 +137,7 @@ Useful query ideas:
 - total product count;
 - total available stock;
 - units sold in the current month;
-- products with high available quantity and low recent sales.
+- products with high available quantity and low recent sales;
+- existing campaigns for one product.
 
 The read-only MCP server can expose these facts to Codex without giving Codex write access to the database.
