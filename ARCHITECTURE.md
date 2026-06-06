@@ -23,7 +23,7 @@ V0 is the interview demo.
 It should prove:
 
 - a clean local UI flow;
-- simple app authentication;
+- simple seeded app authentication;
 - local durable persistence;
 - Codex SDK usage;
 - Codex access to product and sales context through a tiny MCP server;
@@ -64,7 +64,7 @@ Recommended V0 stack:
 - Node.js and TypeScript;
 - shadcn/ui with Tailwind CSS;
 - Prisma with SQLite;
-- seeded email/password login;
+- seeded-only email/password login;
 - Codex SDK for the agent loop;
 - a tiny read-only MCP server for campaign/product context;
 - OpenAI image generation for campaign images.
@@ -94,7 +94,8 @@ There are two auth concerns:
 
 2. **Demo app authentication**
    - protects the app workflow;
-   - uses a seeded email/password login;
+   - uses a seeded-only email/password login;
+   - does not include signup, invite, password reset, or user creation flows in V0;
    - should be enough to show authenticated state without building enterprise auth.
 
 Recommended V0 setup:
@@ -125,7 +126,8 @@ Codex SDK owns:
 The MCP server owns:
 
 - exposing safe product and sales context;
-- returning campaign opportunity inputs;
+- returning product and sales facts for campaign review;
+- avoiding final opportunity selection so Codex owns the reasoning step;
 - refusing writes, secrets, auth/session access, and image generation.
 
 The backend owns:
@@ -143,6 +145,7 @@ Codex should not write directly to the app database. It should call only read-on
 ## Documentation
 
 - [Campaign workflow](docs/campaign-workflow.md)
+- [Auth](docs/auth.md)
 - [Data model](docs/data-model.md)
 - [Codex MCP contract](docs/codex-tools.md)
 - [Image generation](docs/image-generation.md)

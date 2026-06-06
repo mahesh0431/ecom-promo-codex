@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  sessions     Session[]
+  campaigns    Campaign[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Product {
+  id                String        @id @default(cuid())
+  sku               String        @unique
+  name              String
+  category          String
+  priceCents        Int
+  availableQuantity Int
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  sales             ProductSale[]
+  campaigns         Campaign[]
+}
+
+model ProductSale {
+  id        String   @id @default(cuid())
+  productId String
+  saleDate  DateTime
+  unitsSold Int
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([saleDate])
+}
+
+model Campaign {
+  id                   String          @id @default(cuid())
+  userId               String
+  productId            String
+  prompt               String
+  optionalInstructions String?
+  instagramCaption     String
+  imagePrompt          String
+  codexReasoning       String
+  createdAt            DateTime        @default(now())
+  user                 User            @relation(fields: [userId], references: [id])
+  product              Product         @relation(fields: [productId], references: [id])
+  images               CampaignImage[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model CampaignImage {
+  id           String   @id @default(cuid())
+  campaignId   String
+  prompt       String
+  imageData    Bytes
+  mimeType     String
+  variantIndex Int
+  model        String?
+  size         String?
+  status       String   @default("completed")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([createdAt])
+}

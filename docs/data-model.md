@@ -2,7 +2,9 @@
 
 The data model should stay small and focused on the campaign workflow.
 
-Auth/session tables can be owned by the auth library. The app model only needs to associate saved campaigns with the current user or demo session.
+Auth/session tables can be owned by the auth layer. The app model only needs to associate saved campaigns with the current seeded user or demo session.
+
+V0 does not include account creation. The seed process creates the demo user, and the UI only supports signing in with that seeded account.
 
 ## Demo Persistence Scope
 
@@ -22,7 +24,7 @@ This keeps the demo reproducible without requiring an external database or manua
 
 Represents the seeded demo user/session that owns generated campaigns.
 
-The local demo should seed one user so the README can provide shared demo credentials.
+The local demo should seed one user so the README can provide shared demo credentials. New users are not created through the app in V0.
 
 ```text
 User or Demo Session

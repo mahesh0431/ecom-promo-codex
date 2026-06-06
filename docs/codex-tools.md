@@ -2,11 +2,13 @@
 
 Codex should feel agentic without getting unsafe or overbuilt.
 
-The app gives Codex read-only access to campaign/product context through a tiny MCP server called `promo-campaign-mcp`. Codex decides what to inspect and which products deserve campaign attention. The backend validates and persists the final result.
+The app gives Codex read-only access to campaign/product context through a tiny MCP server called `promo-campaign-mcp`. MCP returns safe facts and summaries. Codex decides what to inspect, which products deserve campaign attention, and why. The backend validates and persists the final result.
 
 ## Tool Boundary
 
 MCP tools must be read-only for opportunity discovery.
+
+MCP should not make the final campaign decision. It can return product rows, sales facts, and safe computed summaries, but Codex owns the opportunity selection and reasoning.
 
 Codex can:
 
@@ -36,9 +38,9 @@ Output includes only:
 - total available stock;
 - units sold in the current month.
 
-### `find_campaign_opportunities`
+### `list_products_for_campaign_review`
 
-Returns candidate products that may need campaign attention.
+Returns product and sales context that Codex can compare when deciding what needs campaign attention.
 
 Input:
 
@@ -49,10 +51,15 @@ limit
 Output:
 
 ```text
-opportunities:
+products:
   - productId
-    signalSummary
+    name
+    category
+    price
+    availableQuantity
+    unitsSoldThisMonth
     recentSalesSummary
+    signalFacts
 ```
 
 ### `get_product_campaign_context`
@@ -87,6 +94,8 @@ opportunities:
 
 The UI highlights those products. Opportunity results do not need their own persistent table.
 
+This output is produced by Codex, not by the MCP server.
+
 ## Campaign Generation Output
 
 When Codex generates the Instagram campaign, it should return structured output:
@@ -106,3 +115,5 @@ V0 keeps MCP read-only. A later version can expose more app actions through MCP 
 ## Why No Raw SQL Tool In V0
 
 Raw SQL is flexible, but it adds validation and safety work that the demo does not need. The MCP server should expose small business-level tools instead of a generic SQL runner. This keeps the demo easier to evaluate and makes the safety boundary easier to explain.
+
+Raw SQL can be reconsidered later if the demo grows, but it is outside V0.

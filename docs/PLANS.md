@@ -1,7 +1,5 @@
 # Codex Execution Plans (ExecPlans)
 
-Status: Draft
-
 An ExecPlan is a self-contained implementation plan that a coding agent or human novice can follow to deliver a working, observable change.
 
 Use this document when the user asks for an exact plan. The exact plan becomes the implementation guide: it should say what to build, how to build it, how to validate it, and how to resume if the work pauses.
