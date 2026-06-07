@@ -38,11 +38,18 @@ V1 also lets a signed-in user start voice control and speak through the same wor
 Requirements:
 
 - Node.js 20+
-- pnpm 10 through Corepack
+- pnpm 10
 - one `OPENAI_API_KEY` for the Codex SDK agent, image generation, and realtime voice
+
+If `pnpm` is not available yet, enable it once with Corepack:
 
 ```bash
 corepack enable pnpm
+```
+
+Then run:
+
+```bash
 pnpm install
 pnpm setup:demo
 ```

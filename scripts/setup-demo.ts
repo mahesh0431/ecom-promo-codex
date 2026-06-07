@@ -27,14 +27,29 @@ function run(command: string, args: string[]) {
   }
 }
 
+function resolvePackageRunner() {
+  const result = spawnSync("pnpm", ["--version"], { stdio: "ignore" });
+
+  if (!result.error && result.status === 0) {
+    return { command: "pnpm", argsPrefix: [] };
+  }
+
+  return { command: "corepack", argsPrefix: ["pnpm"] };
+}
+
+function runPackageCommand(args: string[]) {
+  const runner = resolvePackageRunner();
+  run(runner.command, [...runner.argsPrefix, ...args]);
+}
+
 mkdirSync("data", { recursive: true });
 copyIfMissing(".env.example", ".env");
 copyIfMissing(".env.test.example", ".env.test");
 
-run("pnpm", ["prisma:generate"]);
-run("pnpm", ["prisma", "migrate", "deploy"]);
-run("pnpm", ["db:seed"]);
-run("pnpm", ["db:verify"]);
+runPackageCommand(["prisma:generate"]);
+runPackageCommand(["prisma", "migrate", "deploy"]);
+runPackageCommand(["db:seed"]);
+runPackageCommand(["db:verify"]);
 
 console.log("\nDemo setup complete.");
 console.log("Demo login: demo@promo.test / demo-password");
