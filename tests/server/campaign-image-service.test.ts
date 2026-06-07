@@ -50,6 +50,45 @@ describe("campaign image service", () => {
     expect(stored[1]?.variantIndex).toBe(2);
   });
 
+  test("adds custom image direction to regenerated image prompts", async () => {
+    const user = await getSeededUser();
+    const campaign = await createCampaign(user.id, {
+      imagePrompt: "Saved prompt only"
+    });
+    const prompts: string[] = [];
+
+    const result = await generateImagesForCampaign(
+      {
+        userId: user.id,
+        campaignId: campaign.id,
+        variants: 1,
+        customInstructions: "  Use a darker premium background.  "
+      },
+      {
+        async generateImages(input) {
+          prompts.push(input.prompt);
+
+          return Array.from({ length: input.variants }, () => ({
+            bytes: Buffer.from("fake-image"),
+            mimeType: "image/jpeg",
+            model: "test-image-model",
+            size: "1024x1024"
+          }));
+        }
+      }
+    );
+
+    expect(result.images).toHaveLength(1);
+    expect(prompts).toEqual([
+      "Saved prompt only\n\nAdditional image direction: Use a darker premium background."
+    ]);
+
+    const stored = await prisma.campaignImage.findFirstOrThrow({
+      where: { campaignId: campaign.id }
+    });
+    expect(stored.prompt).toBe(prompts[0]);
+  });
+
   test("appends variant indexes across repeated generations", async () => {
     const user = await getSeededUser();
     const campaign = await createCampaign(user.id);

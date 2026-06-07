@@ -30,6 +30,8 @@ async function findFakeOpportunities(): Promise<OpportunityDiscoveryResult> {
       sku: product.sku,
       signalSummary: product.signalFacts.join("; "),
       reasoning: `${product.name} has ${product.availableQuantity} units available and ${product.unitsSoldThisMonth} units sold this month. ${product.recentSalesSummary}.`,
+      recommendedDiscountPercent: 15,
+      recommendedQuantityLimit: Math.min(50, product.availableQuantity),
       confidence: "high" as const
     }));
 

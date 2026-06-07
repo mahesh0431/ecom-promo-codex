@@ -34,14 +34,14 @@ Create campaign
 When the user clicks `Generate Promotion Suggestions`:
 
 1. Codex uses the small read-only MCP server to inspect product and sales context.
-2. Codex identifies the top products that need campaign attention.
+2. Codex identifies the top products that need campaign attention and recommends offer terms for each one.
 3. The UI shows a popup with the shortlisted products and short reasons.
 4. The matching table rows are highlighted.
 5. Suggested rows show a `View recommendation` button in the `Suggested` column.
-6. `View recommendation` opens a small popover with the AI recommendation, confidence, and why the product was picked.
-7. The popover includes `Create campaign`, which opens the campaign create page for that product.
+6. `View recommendation` opens a centered popup with the AI recommendation, confidence, suggested discount, suggested quantity limit, and why the product was picked.
+7. The popup includes `Create campaign`, which opens the campaign create page for that product with the suggested offer terms prefilled.
 
-The suggestions popup does not include a separate `Use suggestion` action. It can be closed with the close button or by clicking outside the popup. Recommendation popovers can also be closed by clicking outside them.
+The suggestions popup does not include a separate `Use suggestion` action. It can be closed with the close button or by clicking outside the popup. Recommendation popups can also be closed by clicking outside them.
 
 The goal is not to build a complex analytics dashboard. The goal is to show Codex using real data to help the user understand a recommendation and move directly into campaign creation.
 
@@ -72,17 +72,18 @@ This page is for viewing product context and past campaigns. Fresh campaign gene
 
 ## Page 3: Campaign Create And Detail
 
-Selecting one product on the products page and clicking `Create campaign` opens the campaign create page. The user can also open the same campaign create page from a suggested product's AI recommendation popover.
+Selecting one product on the products page and clicking `Create campaign` opens the campaign create page with empty offer terms. The user can also open the same campaign create page from a suggested product's AI recommendation popup, where the suggested offer terms are prefilled.
 
 Required campaign setup fields:
 
-- discount percent slider from 1% to 100%;
+- discount percent slider from 0% to 100%, with generation enabled only after a positive discount is selected;
 - quantity limit;
-- initial image variant count.
+- initial image variant count;
+- aspect ratio.
 
 Optional field:
 
-- campaign instructions.
+- custom image prompt.
 
 Main action:
 
@@ -92,23 +93,23 @@ Generate
 
 When the user clicks `Generate`:
 
-1. The backend validates the selected product, discount, quantity limit, image variant count, and optional instructions.
+1. The backend validates the selected product, discount, quantity limit, image variant count, and optional image preferences.
 2. Codex receives product context, product sales signals, and the offer terms.
 3. Codex generates campaign content and an image prompt.
-4. The backend generates the requested initial image variants.
+4. The backend generates the requested campaign creative images.
 5. The backend saves the campaign and image rows.
 6. The UI shows the generated campaign result.
+
+While generation is running, the UI shows a blocking progress popup because the action calls Codex, generates campaign creative, and persists the result. If generation fails, the popup shows the error and can be closed.
 
 The campaign detail state shows:
 
 - selected product;
-- AI recommendation;
 - Instagram caption;
 - image prompt;
-- campaign instructions;
-- generated image variants.
+- campaign creative images.
 
-The campaign detail page can also offer a later action to generate another image variant from the saved image prompt and optional custom guidance.
+The campaign detail page can also generate another image variant. That action opens a small popup for optional custom image direction, then blocks while the image is being generated.
 
 ## Workflow Story
 
@@ -119,8 +120,12 @@ Product and sales data
   -> user reviews an AI recommendation
   -> user sets discount, quantity limit, and initial image count
   -> Codex generates campaign content and image prompt
-  -> backend generates initial image variants
+  -> backend generates campaign creative images
   -> app saves and displays the campaign
   -> product detail shows campaign history
   -> campaign detail can generate additional image variants later
 ```
+
+## Demo Consideration
+
+Dashboard and campaign-history sorting happens in the browser over the loaded seeded rows. V0 keeps this client-side because the demo dataset is intentionally small; server-side sorting, filtering, and pagination are outside the current scope.

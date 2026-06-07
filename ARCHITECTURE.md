@@ -37,7 +37,7 @@ V0 should stay focused on the demo flow and avoid unrelated platform features.
 
 ### V1: Voice Integration
 
-V1 adds realtime voice so the user can talk through campaign refinement instead of only typing instructions.
+V1 adds realtime voice so the user can talk through campaign refinement instead of only typing.
 
 ### V2: Codex App Skill And MCP Integration
 
@@ -78,9 +78,9 @@ The UI should be simple and demo-focused. Use shadcn/ui and Tailwind CSS instead
 V0 screens:
 
 1. Login.
-2. Products dashboard with product metrics, product sales table, promotion suggestions, row-level AI recommendation popovers, and single-product selection.
+2. Products dashboard with product metrics, product sales table, promotion suggestions, row-level AI recommendation popups, and single-product selection.
 3. Product detail page with product context and existing campaigns for that product.
-4. Campaign create page for a selected product, including discount, quantity limit, initial image variant count, optional instructions, and a `Generate` action.
+4. Campaign create page for a selected product, including discount, quantity limit, initial image variant count, aspect ratio, optional custom image prompt, and a `Generate` action.
 5. Campaign detail page showing generated content, image prompt, saved images, and an action to generate additional image variants.
 
 Product-row navigation and campaign creation are separate:

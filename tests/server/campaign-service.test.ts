@@ -27,6 +27,8 @@ describe("campaign service", () => {
     expect(result.opportunities).toHaveLength(3);
     expect(result.opportunities[0]).toMatchObject({
       sku: "SKU-COF-COLD-001",
+      recommendedDiscountPercent: 15,
+      recommendedQuantityLimit: 50,
       confidence: "high"
     });
     expect(result.opportunities[0]?.reasoning).toContain("180 units");
@@ -54,6 +56,8 @@ describe("campaign service", () => {
               signalSummary: "High stock and low current-month sales.",
               reasoning:
                 "MCP shows 180 units available and only 3 units sold this month.",
+              recommendedDiscountPercent: 20,
+              recommendedQuantityLimit: coldBrew.availableQuantity + 100,
               confidence: "high"
             }
           ]
@@ -68,7 +72,9 @@ describe("campaign service", () => {
 
     expect(result.opportunities[0]).toMatchObject({
       productId: coldBrew.productId,
-      sku: coldBrew.sku
+      sku: coldBrew.sku,
+      recommendedDiscountPercent: 20,
+      recommendedQuantityLimit: coldBrew.availableQuantity
     });
   });
 

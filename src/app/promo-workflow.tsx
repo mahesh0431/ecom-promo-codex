@@ -2,24 +2,67 @@
 
 import {
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BarChart3,
   Boxes,
   CheckCircle2,
   ChevronRight,
-  Database,
+  ChevronsUpDown,
   ImageIcon,
   LoaderCircle,
+  LogOut,
   Package,
   Plus,
   RefreshCcw,
   Sparkles,
+  Tag,
   TrendingUp,
   Wand2,
   X
 } from "lucide-react";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type {
   CampaignDto,
@@ -68,9 +111,46 @@ type AuthState = "checking" | "unauthenticated" | "authenticated";
 type ViewState =
   | { kind: "dashboard" }
   | { kind: "product"; productId: string }
-  | { kind: "campaign"; productId: string; campaignId?: string };
+  | {
+      kind: "campaign";
+      productId: string;
+      campaignId?: string;
+      suggestedOffer?: CampaignOfferDraft;
+    };
 
 type AspectRatioOption = "Square" | "Portrait" | "Landscape";
+
+type CampaignOfferDraft = {
+  discountPercent: number;
+  quantityLimit: number;
+};
+
+type SortDirection = "asc" | "desc";
+
+type ProductSortKey =
+  | "name"
+  | "category"
+  | "price"
+  | "available"
+  | "sold"
+  | "suggested";
+
+type ProductSortState = {
+  key: ProductSortKey;
+  direction: SortDirection;
+};
+
+type CampaignSortKey =
+  | "created"
+  | "discount"
+  | "quantity"
+  | "images"
+  | "status";
+
+type CampaignSortState = {
+  key: CampaignSortKey;
+  direction: SortDirection;
+};
 
 type GenerateCampaignInput = {
   productId: string;
@@ -109,7 +189,10 @@ export default function PromoWorkflow({
     null
   );
   const [opportunities, setOpportunities] = useState<OpportunityDto[]>([]);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [productSortState, setProductSortState] = useState<ProductSortState>({
+    key: "name",
+    direction: "asc"
+  });
   const [campaignsByProduct, setCampaignsByProduct] = useState<
     Record<string, CampaignSummaryDto[]>
   >({});
@@ -118,12 +201,14 @@ export default function PromoWorkflow({
   >({});
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionsDialogOpen, setSuggestionsDialogOpen] = useState(false);
   const [loadingHistoryProductId, setLoadingHistoryProductId] = useState<
     string | null
   >(null);
   const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(
     null
   );
+  const [loggingOut, setLoggingOut] = useState(false);
   const [appError, setAppError] = useState<string | null>(null);
 
   const productsById = useMemo(
@@ -219,10 +304,33 @@ export default function PromoWorkflow({
     await refreshProducts();
   }
 
+  async function handleLogout() {
+    setAppError(null);
+    setLoggingOut(true);
+    try {
+      await apiPost<{ ok: true }>("/api/auth/logout", {});
+      setAuthState("unauthenticated");
+      setUser(null);
+      setOverview(null);
+      setProducts([]);
+      setView({ kind: "dashboard" });
+      setSelectedProductId(null);
+      setOpportunities([]);
+      setSuggestionsDialogOpen(false);
+      setProductSortState({ key: "name", direction: "asc" });
+      setCampaignsByProduct({});
+      setCampaignDetailsById({});
+    } catch (error) {
+      setAppError(toErrorMessage(error));
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
   async function handleAskCodex() {
     setAppError(null);
     setOpportunities([]);
-    setSuggestionsOpen(true);
+    setSuggestionsDialogOpen(true);
     setLoadingSuggestions(true);
     try {
       const result = await apiPost<{ opportunities: OpportunityDto[] }>(
@@ -231,12 +339,14 @@ export default function PromoWorkflow({
       );
 
       setOpportunities(result.opportunities);
-      setSuggestionsOpen(true);
+      if (result.opportunities.length > 0) {
+        setProductSortState({ key: "suggested", direction: "desc" });
+      }
       if (!selectedProductId && result.opportunities[0]) {
         setSelectedProductId(result.opportunities[0].productId);
       }
     } catch (error) {
-      setSuggestionsOpen(false);
+      setSuggestionsDialogOpen(false);
       setAppError(toErrorMessage(error));
     } finally {
       setLoadingSuggestions(false);
@@ -251,8 +361,11 @@ export default function PromoWorkflow({
     });
   }
 
-  function openCampaignCreate(productId: string) {
-    setView({ kind: "campaign", productId });
+  function openCampaignCreate(
+    productId: string,
+    suggestedOffer?: CampaignOfferDraft
+  ) {
+    setView({ kind: "campaign", productId, suggestedOffer });
     setSelectedProductId(productId);
   }
 
@@ -288,11 +401,17 @@ export default function PromoWorkflow({
     return result;
   }
 
-  async function generateAdditionalImage(campaignId: string) {
+  async function generateAdditionalImage(
+    campaignId: string,
+    customInstructions?: string
+  ) {
     setAppError(null);
     const result = await apiPost<{ images: CampaignImageDto[] }>(
       `/api/campaigns/${encodeURIComponent(campaignId)}/images/generate`,
-      { variants: 1 }
+      {
+        variants: 1,
+        customInstructions
+      }
     );
 
     setCampaignDetailsById((current) => {
@@ -322,7 +441,7 @@ export default function PromoWorkflow({
       <main className="grid min-h-screen place-items-center px-6">
         <div className="flex items-center gap-3 text-sm text-slate-600">
           <LoaderCircle className="size-4 animate-spin text-blue-600" />
-          Loading Retail Promo Agent
+          Loading Promo Campaign Studio
         </div>
       </main>
     );
@@ -348,8 +467,14 @@ export default function PromoWorkflow({
       : null;
 
   return (
-    <main className="min-h-screen px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6">
+    <main className="min-h-screen text-slate-950">
+      <AppHeader
+        user={user}
+        loggingOut={loggingOut}
+        onLogout={() => void handleLogout()}
+      />
+
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {appError ? (
           <div className="flex items-start justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             <span>{appError}</span>
@@ -371,8 +496,10 @@ export default function PromoWorkflow({
             products={products}
             selectedProductId={selectedProductId}
             opportunitiesByProductId={opportunitiesByProductId}
+            sortState={productSortState}
             loadingSuggestions={loadingSuggestions}
             onSelectProduct={setSelectedProductId}
+            onSortStateChange={setProductSortState}
             onOpenProduct={openProduct}
             onAskCodex={() => void handleAskCodex()}
             onCreateCampaignForProduct={openCampaignCreate}
@@ -401,8 +528,9 @@ export default function PromoWorkflow({
 
         {view.kind === "campaign" && currentProduct ? (
           <CampaignWorkspace
-            key={`${currentProduct.productId}:${view.campaignId ?? "new"}`}
+            key={`${currentProduct.productId}:${view.campaignId ?? "new"}:${view.suggestedOffer?.discountPercent ?? 0}:${view.suggestedOffer?.quantityLimit ?? 0}`}
             product={currentProduct}
+            suggestedOffer={view.suggestedOffer}
             campaignDetail={currentCampaignDetail}
             loadingCampaign={
               view.campaignId ? loadingCampaignId === view.campaignId : false
@@ -429,19 +557,87 @@ export default function PromoWorkflow({
         ) : null}
       </div>
 
-      {suggestionsOpen ? (
-        <SuggestionDialog
-          loading={loadingSuggestions}
-          opportunities={opportunities}
-          productsById={productsById}
-          onClose={() => setSuggestionsOpen(false)}
-        />
-      ) : null}
+      <PromotionSuggestionsDialog
+        open={suggestionsDialogOpen}
+        loading={loadingSuggestions}
+        opportunities={opportunities}
+        productsById={productsById}
+        onClose={() => setSuggestionsDialogOpen(false)}
+        onCreateCampaign={(productId, suggestedOffer) => {
+          setSuggestionsDialogOpen(false);
+          openCampaignCreate(productId, suggestedOffer);
+        }}
+      />
 
       <span className="sr-only">
         Signed in as {user?.email ?? "demo user"}
       </span>
     </main>
+  );
+}
+
+function AppHeader({
+  user,
+  loggingOut,
+  onLogout
+}: {
+  user: AuthenticatedUser | null;
+  loggingOut: boolean;
+  onLogout: () => void;
+}) {
+  return (
+    <header className="border-b border-slate-200 bg-white">
+      <div className="mx-auto flex min-h-16 w-full max-w-[1480px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-950 text-white">
+            <Tag className="size-5" />
+          </div>
+          <span className="truncate text-xl font-semibold text-slate-950">
+            Promo Campaign Studio
+          </span>
+        </div>
+
+        <div className="flex min-w-0 items-center justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-11 gap-2 px-2"
+                  disabled={loggingOut}
+                />
+              }
+            >
+              <Avatar>
+                <AvatarFallback>{userInitials(user?.email)}</AvatarFallback>
+              </Avatar>
+              <ChevronsUpDown className="size-4 text-slate-500" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-56">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>
+                  {user?.email ?? "Demo account"}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  disabled={loggingOut}
+                  onClick={onLogout}
+                >
+                  {loggingOut ? (
+                    <LoaderCircle className="size-4 animate-spin" />
+                  ) : (
+                    <LogOut className="size-4" />
+                  )}
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
   );
 }
 
@@ -473,61 +669,68 @@ function LoginScreen({
 
   return (
     <main className="grid min-h-screen place-items-center px-4 py-8">
-      <form
-        onSubmit={(event) => void handleSubmit(event)}
-        className="w-full max-w-[420px] rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="mb-6 flex items-center gap-3">
-          <div className="grid size-11 place-items-center rounded-lg bg-blue-50 text-blue-700">
-            <Wand2 className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold text-slate-950">
-              Retail Promo Agent
-            </h1>
-            <p className="text-sm text-slate-500">
-              Sign in with the seeded demo account.
-            </p>
-          </div>
-        </div>
+      <Card className="w-full max-w-[420px]">
+        <form onSubmit={(event) => void handleSubmit(event)}>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-lg bg-blue-50 text-blue-700">
+                <Wand2 className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">
+                  Promo Campaign Studio
+                </CardTitle>
+                <CardDescription>
+                  Sign in with the seeded demo account.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
 
-        {error ? (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
-          </div>
-        ) : null}
+          <CardContent className="flex flex-col gap-4">
+            {error ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {error}
+              </div>
+            ) : null}
 
-        <label className="mb-4 block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">
-            Email
-          </span>
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
-            type="email"
-            autoComplete="email"
-          />
-        </label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="h-10"
+                type="email"
+                autoComplete="email"
+              />
+            </div>
 
-        <label className="mb-5 block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">
-            Password
-          </span>
-          <input
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-100"
-            type="password"
-            autoComplete="current-password"
-          />
-        </label>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-10"
+                type="password"
+                autoComplete="current-password"
+              />
+            </div>
 
-        <Button className="h-10 w-full bg-blue-600 hover:bg-blue-700" type="submit">
-          {loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
-          Sign in
-        </Button>
-      </form>
+            <Button
+              className="h-10 w-full bg-blue-600 hover:bg-blue-700"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : null}
+              Sign in
+            </Button>
+          </CardContent>
+        </form>
+      </Card>
     </main>
   );
 }
@@ -538,8 +741,10 @@ function DashboardView({
   products,
   selectedProductId,
   opportunitiesByProductId,
+  sortState,
   loadingSuggestions,
   onSelectProduct,
+  onSortStateChange,
   onOpenProduct,
   onAskCodex,
   onCreateCampaignForProduct,
@@ -550,15 +755,61 @@ function DashboardView({
   products: ProductForCampaignReview[];
   selectedProductId: string | null;
   opportunitiesByProductId: Map<string, OpportunityDto>;
+  sortState: ProductSortState;
   loadingSuggestions: boolean;
   onSelectProduct: (productId: string | null) => void;
+  onSortStateChange: (sortState: ProductSortState) => void;
   onOpenProduct: (productId: string) => void;
   onAskCodex: () => void;
-  onCreateCampaignForProduct: (productId: string) => void;
+  onCreateCampaignForProduct: (
+    productId: string,
+    suggestedOffer?: CampaignOfferDraft
+  ) => void;
   onCreateCampaign: () => void;
 }) {
   const [openRecommendationProductId, setOpenRecommendationProductId] =
     useState<string | null>(null);
+
+  const suggestionRankByProductId = useMemo(() => {
+    const ranks = new Map<string, number>();
+    let index = 0;
+
+    for (const productId of opportunitiesByProductId.keys()) {
+      ranks.set(productId, index);
+      index += 1;
+    }
+
+    return ranks;
+  }, [opportunitiesByProductId]);
+
+  const sortedProducts = useMemo(
+    () =>
+      [...products].sort((firstProduct, secondProduct) =>
+        compareProducts(
+          firstProduct,
+          secondProduct,
+          sortState,
+          opportunitiesByProductId,
+          suggestionRankByProductId
+        )
+      ),
+    [opportunitiesByProductId, products, sortState, suggestionRankByProductId]
+  );
+
+  const openRecommendationProduct = openRecommendationProductId
+    ? products.find((product) => product.productId === openRecommendationProductId) ?? null
+    : null;
+  const openRecommendation = openRecommendationProductId
+    ? opportunitiesByProductId.get(openRecommendationProductId) ?? null
+    : null;
+
+  function handleSort(key: ProductSortKey) {
+    onSortStateChange({
+      key,
+      direction:
+        sortState.key === key && sortState.direction === "asc" ? "desc" : "asc"
+    });
+  }
 
   return (
     <>
@@ -629,133 +880,131 @@ function DashboardView({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] border-collapse text-left">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
-                <th className="w-[88px] px-5 py-3">Select</th>
-                <th className="px-5 py-3">Product</th>
-                <th className="px-5 py-3">Category</th>
-                <th className="px-5 py-3">Price</th>
-                <th className="px-5 py-3">Available</th>
-                <th className="px-5 py-3">Sold this month</th>
-                <th className="px-5 py-3">Suggested</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => {
-                const selected = selectedProductId === product.productId;
-                const recommendation = opportunitiesByProductId.get(
-                  product.productId
-                );
-                const suggested = Boolean(recommendation);
-                const recommendationOpen =
-                  openRecommendationProductId === product.productId;
+        <Table className="min-w-[920px]">
+          <TableHeader>
+            <TableRow className="text-xs font-semibold uppercase text-slate-500">
+              <TableHead className="w-[88px] px-5 py-3">Select</TableHead>
+                <SortableTableHeader
+                  label="Product"
+                  active={sortState.key === "name"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("name")}
+                />
+                <SortableTableHeader
+                  label="Category"
+                  active={sortState.key === "category"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("category")}
+                />
+                <SortableTableHeader
+                  label="Price"
+                  active={sortState.key === "price"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("price")}
+                />
+                <SortableTableHeader
+                  label="Available"
+                  active={sortState.key === "available"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("available")}
+                />
+                <SortableTableHeader
+                  label="Sold this month"
+                  active={sortState.key === "sold"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("sold")}
+                />
+                <SortableTableHeader
+                  label="Suggested"
+                  active={sortState.key === "suggested"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("suggested")}
+                />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedProducts.map((product) => {
+              const selected = selectedProductId === product.productId;
+              const recommendation = opportunitiesByProductId.get(
+                product.productId
+              );
+              const suggested = Boolean(recommendation);
 
-                return (
-                  <tr
-                    key={product.productId}
-                    onClick={() => onOpenProduct(product.productId)}
-                    className={cn(
-                      "cursor-pointer border-b border-slate-100 text-sm transition last:border-b-0 hover:bg-slate-50",
-                      selected && "bg-blue-50/70",
-                      suggested && !selected && "bg-sky-50/45"
-                    )}
-                  >
-                    <td className="px-5 py-4 align-middle">
-                      <input
-                        type="checkbox"
-                        className="size-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        checked={selected}
-                        onClick={(event) => event.stopPropagation()}
-                        onChange={() =>
-                          onSelectProduct(selected ? null : product.productId)
-                        }
-                        aria-label={`Select ${product.name}`}
-                      />
-                    </td>
-                    <td className="px-5 py-4 align-middle">
-                      <button
-                        type="button"
-                        className="font-semibold text-slate-950 hover:text-blue-700"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onOpenProduct(product.productId);
-                        }}
-                      >
-                        {product.name}
-                      </button>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {product.sku}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 align-middle text-slate-600">
-                      {product.category}
-                    </td>
-                    <td className="px-5 py-4 align-middle">
-                      {formatCents(product.priceCents)}
-                    </td>
-                    <td className="px-5 py-4 align-middle">
-                      {numberFormat.format(product.availableQuantity)}
-                    </td>
-                    <td className="px-5 py-4 align-middle">
-                      {numberFormat.format(product.unitsSoldThisMonth)}
-                    </td>
-                    <td
-                      className="relative px-5 py-4 align-middle"
+              return (
+                <TableRow
+                  key={product.productId}
+                  onClick={() => onOpenProduct(product.productId)}
+                  className={cn(
+                    "cursor-pointer text-sm",
+                    selected && "bg-blue-50/70",
+                    suggested && !selected && "bg-sky-50/45"
+                  )}
+                >
+                  <TableCell className="px-5 py-4">
+                    <input
+                      type="checkbox"
+                      className="size-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      checked={selected}
                       onClick={(event) => event.stopPropagation()}
+                      onChange={() =>
+                        onSelectProduct(selected ? null : product.productId)
+                      }
+                      aria-label={`Select ${product.name}`}
+                    />
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    <button
+                      type="button"
+                      className="font-semibold text-slate-950 hover:text-blue-700"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenProduct(product.productId);
+                      }}
                     >
-                      {recommendation ? (
-                        <>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className={cn(
-                              "h-8 px-3 text-xs",
-                              recommendationOpen && "relative z-30"
-                            )}
-                            aria-haspopup="dialog"
-                            aria-expanded={recommendationOpen}
-                            onClick={() =>
-                              setOpenRecommendationProductId((current) =>
-                                current === product.productId
-                                  ? null
-                                  : product.productId
-                              )
-                            }
-                          >
-                            <Sparkles className="size-3.5" />
-                            View recommendation
-                          </Button>
-                          {recommendationOpen ? (
-                            <>
-                              <button
-                                type="button"
-                                className="fixed inset-0 z-20 cursor-default"
-                                aria-label="Close recommendation"
-                                onClick={() => setOpenRecommendationProductId(null)}
-                              />
-                              <RecommendationPopover
-                                product={product}
-                                opportunity={recommendation}
-                                onCreateCampaign={() =>
-                                  onCreateCampaignForProduct(product.productId)
-                                }
-                                onClose={() => setOpenRecommendationProductId(null)}
-                              />
-                            </>
-                          ) : null}
-                        </>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {product.name}
+                    </button>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {product.sku}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-5 py-4 text-slate-600">
+                    {product.category}
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    {formatCents(product.priceCents)}
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    {numberFormat.format(product.availableQuantity)}
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    {numberFormat.format(product.unitsSoldThisMonth)}
+                  </TableCell>
+                  <TableCell
+                    className="px-5 py-4"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {recommendation ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-8 px-3 text-xs"
+                        aria-haspopup="dialog"
+                        onClick={() =>
+                          setOpenRecommendationProductId(product.productId)
+                        }
+                      >
+                        <Sparkles className="size-3.5" />
+                        View recommendation
+                      </Button>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
 
         <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4 text-sm text-slate-500">
           <span>
@@ -770,11 +1019,26 @@ function DashboardView({
           ) : null}
         </div>
       </section>
+
+      {openRecommendationProduct && openRecommendation ? (
+        <RecommendationDialog
+          product={openRecommendationProduct}
+          opportunity={openRecommendation}
+          onCreateCampaign={() => {
+            setOpenRecommendationProductId(null);
+            onCreateCampaignForProduct(openRecommendationProduct.productId, {
+              discountPercent: openRecommendation.recommendedDiscountPercent,
+              quantityLimit: openRecommendation.recommendedQuantityLimit
+            });
+          }}
+          onClose={() => setOpenRecommendationProductId(null)}
+        />
+      ) : null}
     </>
   );
 }
 
-function RecommendationPopover({
+function RecommendationDialog({
   product,
   opportunity,
   onCreateCampaign,
@@ -782,54 +1046,203 @@ function RecommendationPopover({
 }: {
   product: ProductForCampaignReview;
   opportunity: OpportunityDto;
-  onCreateCampaign: () => void;
+  onCreateCampaign: (suggestedOffer: CampaignOfferDraft) => void;
   onClose: () => void;
 }) {
   return (
-    <div
-      role="dialog"
-      aria-label={`AI recommendation for ${product.name}`}
-      className="absolute right-5 top-14 z-40 w-[340px] rounded-lg border border-slate-200 bg-white p-4 text-left shadow-xl"
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+        }
+      }}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-slate-950">
-            AI recommendation
-          </p>
-          <p className="mt-1 text-xs text-slate-500">{product.name}</p>
+      <DialogContent className="sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>AI recommendation</DialogTitle>
+          <DialogDescription>
+            {product.name} · {product.category}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+          <Fact
+            label="Available"
+            value={`${numberFormat.format(product.availableQuantity)} units`}
+          />
+          <Fact
+            label="Sold this month"
+            value={`${numberFormat.format(product.unitsSoldThisMonth)} units`}
+          />
+          <div>
+            <p className="text-sm font-medium text-slate-500">Confidence</p>
+            <div className="mt-2">
+              <StatusPill tone={confidenceTone(opportunity.confidence)}>
+                {opportunity.confidence}
+              </StatusPill>
+            </div>
+          </div>
         </div>
-        <button
-          type="button"
-          className="grid size-7 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-          onClick={onClose}
-          aria-label="Close recommendation"
-        >
-          <X className="size-4" />
-        </button>
-      </div>
 
-      <div className="mb-3">
-        <StatusPill tone={confidenceTone(opportunity.confidence)}>
-          {opportunity.confidence}
-        </StatusPill>
-      </div>
+        <p className="text-sm leading-6 text-slate-700">
+          <span className="font-medium text-slate-800">Why picked:</span>{" "}
+          {opportunity.reasoning}
+        </p>
 
-      <p className="text-sm leading-6 text-slate-600">
-        <span className="font-medium text-slate-800">Why picked:</span>{" "}
-        {opportunity.reasoning}
-      </p>
+        <div className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-2">
+          <Fact
+            label="Recommended discount"
+            value={`${opportunity.recommendedDiscountPercent}%`}
+          />
+          <Fact
+            label="Quantity limit"
+            value={`${numberFormat.format(opportunity.recommendedQuantityLimit)} units`}
+          />
+        </div>
 
-      <div className="mt-4 flex justify-end border-t border-slate-100 pt-3">
-        <Button
-          type="button"
-          className="h-9 bg-blue-600 px-3 text-xs hover:bg-blue-700"
-          onClick={onCreateCampaign}
-        >
-          <Plus className="size-3.5" />
-          Create campaign
-        </Button>
-      </div>
-    </div>
+        <DialogFooter>
+          <DialogClose render={<Button type="button" variant="outline" />}>
+            Close
+          </DialogClose>
+          <Button
+            type="button"
+            className="bg-blue-600 hover:bg-blue-700"
+            onClick={() =>
+              onCreateCampaign({
+                discountPercent: opportunity.recommendedDiscountPercent,
+                quantityLimit: opportunity.recommendedQuantityLimit
+              })
+            }
+          >
+            <Plus className="size-4" />
+            Create campaign
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PromotionSuggestionsDialog({
+  open,
+  loading,
+  opportunities,
+  productsById,
+  onCreateCampaign,
+  onClose
+}: {
+  open: boolean;
+  loading: boolean;
+  opportunities: OpportunityDto[];
+  productsById: Map<string, ProductForCampaignReview>;
+  onCreateCampaign: (
+    productId: string,
+    suggestedOffer: CampaignOfferDraft
+  ) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !loading) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-[720px]" showCloseButton={!loading}>
+        <DialogHeader>
+          <DialogTitle>Promotion suggestions</DialogTitle>
+          <DialogDescription>
+            Products Codex recommends for campaign attention.
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <LoadingPanel label="Generating promotion suggestions" />
+        ) : opportunities.length > 0 ? (
+          <ScrollArea className="max-h-[460px]">
+            <div className="flex flex-col gap-3 pr-3">
+              {opportunities.map((opportunity, index) => {
+                const product = productsById.get(opportunity.productId);
+                const productName = product?.name ?? opportunity.sku;
+                const productCategory = product?.category ?? "Product";
+
+                return (
+                  <article
+                    key={`${opportunity.productId}-${opportunity.sku}`}
+                    className="rounded-lg border border-slate-200 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Suggestion {index + 1}
+                        </p>
+                        <h3 className="mt-1 text-base font-semibold text-slate-950">
+                          {productName}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                          {productCategory} · {opportunity.sku}
+                        </p>
+                      </div>
+                      <StatusPill tone={confidenceTone(opportunity.confidence)}>
+                        {opportunity.confidence}
+                      </StatusPill>
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-slate-700">
+                      {opportunity.reasoning}
+                    </p>
+
+                    <div className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-2">
+                      <Fact
+                        label="Recommended discount"
+                        value={`${opportunity.recommendedDiscountPercent}%`}
+                      />
+                      <Fact
+                        label="Quantity limit"
+                        value={`${numberFormat.format(opportunity.recommendedQuantityLimit)} units`}
+                      />
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        type="button"
+                        className="h-9 bg-blue-600 hover:bg-blue-700"
+                        onClick={() =>
+                          onCreateCampaign(opportunity.productId, {
+                            discountPercent:
+                              opportunity.recommendedDiscountPercent,
+                            quantityLimit:
+                              opportunity.recommendedQuantityLimit
+                          })
+                        }
+                      >
+                        <Plus className="size-4" />
+                        Create campaign
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        ) : (
+          <div className="rounded-lg border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">
+            No promotion suggestions were returned.
+          </div>
+        )}
+
+        {!loading ? (
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Close
+            </DialogClose>
+          </DialogFooter>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -848,6 +1261,26 @@ function ProductDetailView({
   onCreateCampaign: () => void;
   onViewCampaign: (campaignId: string) => void;
 }) {
+  const [sortState, setSortState] = useState<CampaignSortState>({
+    key: "created",
+    direction: "desc"
+  });
+  const sortedCampaigns = useMemo(
+    () =>
+      [...campaigns].sort((firstCampaign, secondCampaign) =>
+        compareCampaigns(firstCampaign, secondCampaign, sortState)
+      ),
+    [campaigns, sortState]
+  );
+
+  function handleSort(key: CampaignSortKey) {
+    setSortState((current) => ({
+      key,
+      direction:
+        current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  }
+
   return (
     <>
       <div className="flex items-center justify-between gap-4">
@@ -867,55 +1300,35 @@ function ProductDetailView({
 
       <h1 className="text-3xl font-semibold text-slate-950">{product.name}</h1>
 
-      <section className="grid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm lg:grid-cols-[1fr_440px]">
-        <div className="p-5">
-          <div className="grid gap-5 border-b border-slate-200 pb-5 sm:grid-cols-4">
-            <Fact label="SKU" value={product.sku} />
-            <Fact label="Category" value={product.category} />
-            <Fact label="Unit price" value={formatCents(product.priceCents)} />
-            <Fact label="Inventory status" value={stockLabel(product)} />
-          </div>
-          <div className="grid gap-5 pt-5 sm:grid-cols-3">
-            <InventoryFact
-              icon={<Package className="size-5" />}
-              label="Available stock"
-              value={`${numberFormat.format(product.availableQuantity)} units`}
-            />
-            <InventoryFact
-              icon={<TrendingUp className="size-5" />}
-              label="Sold this month"
-              value={`${numberFormat.format(product.unitsSoldThisMonth)} units`}
-            />
-            <InventoryFact
-              icon={<BarChart3 className="size-5" />}
-              label="Sales summary"
-              value={product.recentSalesSummary}
-            />
-          </div>
-        </div>
-        <aside className="border-t border-slate-200 p-5 lg:border-l lg:border-t-0">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-lg bg-blue-50 text-blue-700">
-              <BarChart3 className="size-5" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-950">
-              Why this product needs attention
-            </h2>
-          </div>
-          <div className="space-y-4">
-            {product.signalFacts.map((fact) => (
-              <div key={fact} className="flex gap-3">
-                <div className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-blue-700">
-                  <Database className="size-4" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900">{factTitle(fact)}</p>
-                  <p className="mt-1 text-sm text-slate-500">{fact}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-6">
+          <ProductSummaryItem
+            icon={<Package className="size-5" />}
+            label="SKU"
+            value={product.sku}
+            className="xl:col-span-2"
+          />
+          <ProductSummaryItem
+            icon={<Boxes className="size-5" />}
+            label="Category"
+            value={product.category}
+          />
+          <ProductSummaryItem
+            icon={<Tag className="size-5" />}
+            label="Unit price"
+            value={formatCents(product.priceCents)}
+          />
+          <ProductSummaryItem
+            icon={<Package className="size-5" />}
+            label="Available stock"
+            value={`${numberFormat.format(product.availableQuantity)} units`}
+          />
+          <ProductSummaryItem
+            icon={<TrendingUp className="size-5" />}
+            label="Sold this month"
+            value={`${numberFormat.format(product.unitsSoldThisMonth)} units`}
+          />
+        </dl>
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -933,62 +1346,87 @@ function ProductDetailView({
         {loadingCampaigns && !campaigns.length ? (
           <LoadingPanel label="Loading campaign history" />
         ) : campaigns.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500">
-                  <th className="px-5 py-3">Created</th>
-                  <th className="px-5 py-3">Discount</th>
-                  <th className="px-5 py-3">Quantity limit</th>
-                  <th className="px-5 py-3">Images</th>
-                  <th className="px-5 py-3">Caption status</th>
-                  <th className="px-5 py-3">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((campaign) => (
-                  <tr
-                    key={campaign.campaignId}
-                    onClick={() => onViewCampaign(campaign.campaignId)}
-                    className="cursor-pointer border-b border-slate-100 text-sm last:border-b-0 hover:bg-slate-50"
-                  >
-                    <td className="px-5 py-4">{formatDateTime(campaign.createdAt)}</td>
-                    <td className="px-5 py-4">
-                      <StatusPill tone="blue">
-                        {campaign.discountPercent}% OFF
-                      </StatusPill>
-                    </td>
-                    <td className="px-5 py-4">
-                      {numberFormat.format(campaign.quantityLimit)} units
-                    </td>
-                    <td className="px-5 py-4">
-                      {numberFormat.format(campaign.imageCount)} generated
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-2 text-slate-700">
-                        <CheckCircle2 className="size-4 text-green-600" />
-                        Completed
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-8"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onViewCampaign(campaign.campaignId);
-                        }}
-                      >
-                        View campaign
-                        <ChevronRight className="size-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table className="min-w-[860px]">
+            <TableHeader>
+              <TableRow className="text-xs font-semibold text-slate-500">
+                <SortableTableHeader
+                  label="Created"
+                  active={sortState.key === "created"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("created")}
+                />
+                <SortableTableHeader
+                  label="Discount"
+                  active={sortState.key === "discount"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("discount")}
+                />
+                <SortableTableHeader
+                  label="Quantity limit"
+                  active={sortState.key === "quantity"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("quantity")}
+                />
+                <SortableTableHeader
+                  label="Images"
+                  active={sortState.key === "images"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("images")}
+                />
+                <SortableTableHeader
+                  label="Caption status"
+                  active={sortState.key === "status"}
+                  direction={sortState.direction}
+                  onSort={() => handleSort("status")}
+                />
+                <TableHead className="px-5 py-3">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedCampaigns.map((campaign) => (
+                <TableRow
+                  key={campaign.campaignId}
+                  onClick={() => onViewCampaign(campaign.campaignId)}
+                  className="cursor-pointer text-sm"
+                >
+                  <TableCell className="px-5 py-4">
+                    {formatDateTime(campaign.createdAt)}
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    <StatusPill tone="blue">
+                      {campaign.discountPercent}% OFF
+                    </StatusPill>
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    {numberFormat.format(campaign.quantityLimit)} units
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    {numberFormat.format(campaign.imageCount)} generated
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    <span className="inline-flex items-center gap-2 text-slate-700">
+                      <CheckCircle2 className="size-4 text-green-600" />
+                      Completed
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-5 py-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-8"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onViewCampaign(campaign.campaignId);
+                      }}
+                    >
+                      View campaign
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <div className="px-5 py-12">
             <EmptyState
@@ -1006,6 +1444,7 @@ function ProductDetailView({
 
 function CampaignWorkspace({
   product,
+  suggestedOffer,
   campaignDetail,
   loadingCampaign,
   onBack,
@@ -1014,23 +1453,41 @@ function CampaignWorkspace({
   onError
 }: {
   product: ProductForCampaignReview;
+  suggestedOffer?: CampaignOfferDraft;
   campaignDetail: CampaignDetailDto | null;
   loadingCampaign: boolean;
   onBack: () => void;
   onGenerate: (input: GenerateCampaignInput) => Promise<CampaignDetailDto>;
-  onGenerateAnotherImage: (campaignId: string) => Promise<void>;
+  onGenerateAnotherImage: (
+    campaignId: string,
+    customInstructions?: string
+  ) => Promise<void>;
   onError: (message: string) => void;
 }) {
-  const [discountPercent, setDiscountPercent] = useState(15);
+  const [discountPercent, setDiscountPercent] = useState(
+    suggestedOffer?.discountPercent ?? 0
+  );
   const [quantityLimit, setQuantityLimit] = useState(
-    Math.max(1, Math.min(product.availableQuantity, 50))
+    suggestedOffer?.quantityLimit ?? 0
   );
   const [imageVariants, setImageVariants] = useState(2);
   const [aspectRatio, setAspectRatio] = useState<AspectRatioOption>("Square");
   const [customImagePrompt, setCustomImagePrompt] = useState("");
-  const [campaignInstructions, setCampaignInstructions] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [campaignGenerationError, setCampaignGenerationError] = useState<
+    string | null
+  >(null);
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [additionalImageDialogOpen, setAdditionalImageDialogOpen] =
+    useState(false);
+  const [additionalImageInstructions, setAdditionalImageInstructions] =
+    useState("");
+  const [additionalImageError, setAdditionalImageError] = useState<
+    string | null
+  >(null);
+  const [previewImage, setPreviewImage] = useState<CampaignImageDto | null>(
+    null
+  );
 
   const readOnly = Boolean(campaignDetail) || loadingCampaign;
   const displayedDiscountPercent =
@@ -1046,11 +1503,10 @@ function CampaignWorkspace({
   const displayedCustomImagePrompt = campaignDetail
     ? extractCustomImagePrompt(campaignDetail.campaign.optionalInstructions)
     : customImagePrompt;
-  const displayedCampaignInstructions =
-    campaignDetail?.campaign.optionalInstructions ?? campaignInstructions;
   const validQuantity =
     quantityLimit >= 1 && quantityLimit <= product.availableQuantity;
   const validDiscount = discountPercent >= 1 && discountPercent <= 100;
+  const quantityExceedsStock = quantityLimit > product.availableQuantity;
   const canGenerate =
     !readOnly && validQuantity && validDiscount && imageVariants >= 1;
 
@@ -1058,10 +1514,11 @@ function CampaignWorkspace({
     event.preventDefault();
 
     if (!canGenerate) {
-      onError("Check the discount and quantity limit before generating.");
+      onError("Enter a discount and quantity limit before generating.");
       return;
     }
 
+    setCampaignGenerationError(null);
     setGenerating(true);
     try {
       await onGenerate({
@@ -1071,15 +1528,20 @@ function CampaignWorkspace({
         imageVariants,
         optionalInstructions: buildOptionalInstructions({
           aspectRatio,
-          customImagePrompt,
-          campaignInstructions
+          customImagePrompt
         })
       });
     } catch (error) {
-      onError(toErrorMessage(error));
+      setCampaignGenerationError(toErrorMessage(error));
     } finally {
       setGenerating(false);
     }
+  }
+
+  function openAdditionalImageDialog() {
+    setAdditionalImageError(null);
+    setAdditionalImageInstructions("");
+    setAdditionalImageDialogOpen(true);
   }
 
   async function handleGenerateAnotherImage() {
@@ -1087,11 +1549,17 @@ function CampaignWorkspace({
       return;
     }
 
+    setAdditionalImageError(null);
     setGeneratingImage(true);
     try {
-      await onGenerateAnotherImage(campaignDetail.campaign.campaignId);
+      await onGenerateAnotherImage(
+        campaignDetail.campaign.campaignId,
+        additionalImageInstructions
+      );
+      setAdditionalImageDialogOpen(false);
+      setAdditionalImageInstructions("");
     } catch (error) {
-      onError(toErrorMessage(error));
+      setAdditionalImageError(toErrorMessage(error));
     } finally {
       setGeneratingImage(false);
     }
@@ -1153,7 +1621,7 @@ function CampaignWorkspace({
                 <NumberField
                   label="Quantity limit"
                   suffix="units"
-                  min={1}
+                  min={0}
                   max={product.availableQuantity}
                   value={displayedQuantityLimit}
                   disabled={readOnly || generating}
@@ -1208,8 +1676,8 @@ function CampaignWorkspace({
             <span className="mb-2 block text-sm font-medium text-slate-700">
               Custom image prompt
             </span>
-            <textarea
-              className="min-h-[84px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-100 disabled:bg-slate-50"
+            <Textarea
+              className="min-h-[84px] resize-y"
               maxLength={500}
               value={displayedCustomImagePrompt}
               disabled={readOnly || generating}
@@ -1222,24 +1690,7 @@ function CampaignWorkspace({
           </label>
         </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-          <label>
-            <span className="mb-2 block text-sm font-medium text-slate-700">
-              Campaign instructions
-            </span>
-            <textarea
-              className="min-h-[108px] w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-100 disabled:bg-slate-50"
-              maxLength={900}
-              value={displayedCampaignInstructions}
-              disabled={readOnly || generating}
-              placeholder="Add any specific instructions for Codex to consider..."
-              onChange={(event) => setCampaignInstructions(event.target.value)}
-            />
-            <span className="mt-1 block text-right text-xs text-slate-500">
-              {displayedCampaignInstructions.length} / 900
-            </span>
-          </label>
-
+        <div className="mt-5 flex justify-end">
           <Button
             type="submit"
             className="h-10 bg-blue-600 px-6 hover:bg-blue-700"
@@ -1254,7 +1705,7 @@ function CampaignWorkspace({
           </Button>
         </div>
 
-        {!validQuantity ? (
+        {quantityExceedsStock ? (
           <p className="mt-3 text-sm text-red-700">
             Quantity limit cannot exceed available stock.
           </p>
@@ -1265,18 +1716,11 @@ function CampaignWorkspace({
         <h2 className="mb-4 text-lg font-semibold text-slate-950">
           Campaign details
         </h2>
-        {generating ? (
-          <LoadingPanel label="Generating campaign and images" />
-        ) : loadingCampaign ? (
+        {loadingCampaign ? (
           <LoadingPanel label="Loading campaign" />
         ) : campaignDetail ? (
           <>
             <div className="overflow-hidden rounded-lg border border-slate-200">
-              <DetailRow
-                icon={<Wand2 className="size-4" />}
-                label="AI recommendation"
-                value={campaignDetail.campaign.codexReasoning}
-              />
               <DetailRow
                 icon={<Sparkles className="size-4" />}
                 label="Instagram caption"
@@ -1287,168 +1731,250 @@ function CampaignWorkspace({
                 label="Image prompt"
                 value={campaignDetail.campaign.imagePrompt}
               />
-              <DetailRow
-                icon={<Package className="size-4" />}
-                label="Campaign instructions"
-                value={campaignDetail.campaign.optionalInstructions ?? "None"}
-              />
             </div>
 
-            <div className="mt-5">
-              <h3 className="mb-3 text-lg font-semibold text-slate-950">
-                Generated images
-              </h3>
-              <div className="flex gap-4 overflow-x-auto pb-3">
-                {campaignDetail.images.map((image) => (
-                  <article
-                    key={image.imageId}
-                    className="grid min-w-[340px] grid-cols-[150px_1fr] gap-4 rounded-lg border border-slate-200 bg-white p-3"
-                  >
+            <div className="mt-5 flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-lg font-semibold text-slate-950">
+                  Campaign creative
+                </h3>
+                <Button
+                  type="button"
+                  className="h-9 self-start bg-blue-600 hover:bg-blue-700 sm:self-auto"
+                  onClick={openAdditionalImageDialog}
+                  disabled={generatingImage}
+                >
+                  <RefreshCcw className="size-4" />
+                  Generate image
+                </Button>
+              </div>
+              <ScrollArea className="max-h-[420px] rounded-lg border border-slate-200 bg-slate-50/60">
+                <div className="grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {campaignDetail.images.map((image) => {
+                    const imageSrc = campaignImageSrc(image);
+
+                    return (
+                      <button
+                        key={image.imageId}
+                        type="button"
+                        className="group overflow-hidden rounded-lg border border-slate-200 bg-white text-left shadow-sm transition hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-3 focus:ring-blue-100"
+                        onClick={() => setPreviewImage(image)}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- Protected campaign-image route should render with the browser session cookie. */}
+                        <img
+                          src={imageSrc}
+                          alt={`Campaign creative for ${product.name}`}
+                          className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+                        />
+                        <span className="sr-only">
+                          Open campaign creative preview
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <AdditionalImageDialog
+              open={additionalImageDialogOpen}
+              loading={generatingImage}
+              error={additionalImageError}
+              value={additionalImageInstructions}
+              onValueChange={setAdditionalImageInstructions}
+              onGenerate={() => void handleGenerateAnotherImage()}
+              onClose={() => {
+                if (!generatingImage) {
+                  setAdditionalImageDialogOpen(false);
+                }
+              }}
+            />
+
+            <Dialog
+              open={Boolean(previewImage)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setPreviewImage(null);
+                }
+              }}
+            >
+              <DialogContent className="max-w-[min(92vw,980px)] p-3 sm:p-4">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Campaign creative preview</DialogTitle>
+                </DialogHeader>
+                {previewImage ? (
+                  <div className="overflow-hidden rounded-lg bg-slate-100">
                     {/* eslint-disable-next-line @next/next/no-img-element -- Protected campaign-image route should render with the browser session cookie. */}
                     <img
-                      src={`/api/campaigns/${encodeURIComponent(image.campaignId)}/images/${encodeURIComponent(image.imageId)}`}
-                      alt={`Campaign image variant ${image.variantIndex}`}
-                      className="aspect-square w-full rounded-lg border border-slate-200 object-cover"
+                      src={campaignImageSrc(previewImage)}
+                      alt={`Campaign creative preview for ${product.name}`}
+                      className="max-h-[82vh] w-full object-contain"
                     />
-                    <div className="min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-semibold text-slate-950">
-                          Variant {image.variantIndex}
-                        </h4>
-                        <StatusPill tone="green">{image.status}</StatusPill>
-                      </div>
-                      <p className="mt-4 text-sm text-slate-500">
-                        {image.size ?? "1024x1024"}
-                      </p>
-                      <p className="mt-2 text-sm text-slate-500">
-                        {image.model ?? "image model"}
-                      </p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        {formatDate(image.createdAt)}
-                      </p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-2 h-9"
-                onClick={() => void handleGenerateAnotherImage()}
-                disabled={generatingImage}
-              >
-                {generatingImage ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCcw className="size-4" />
-                )}
-                {generatingImage ? "Generating image" : "Generate another image"}
-              </Button>
-            </div>
+                  </div>
+                ) : null}
+              </DialogContent>
+            </Dialog>
           </>
         ) : (
           <div className="rounded-lg border border-dashed border-slate-300 px-5 py-10 text-sm text-slate-500">
-            Generated copy, image prompt, and image variants will appear here
+            Generated copy, image prompt, and campaign creative will appear here
             after the campaign is created.
           </div>
         )}
       </section>
+
+      <WorkStatusDialog
+        open={generating || Boolean(campaignGenerationError)}
+        loading={generating}
+        title={
+          campaignGenerationError ? "Campaign was not created" : "Creating campaign"
+        }
+        description="Generating campaign copy and campaign creative."
+        loadingLabel="Creating campaign"
+        error={campaignGenerationError}
+        onClose={() => {
+          if (!generating) {
+            setCampaignGenerationError(null);
+          }
+        }}
+      />
     </>
   );
 }
 
-function SuggestionDialog({
+function WorkStatusDialog({
+  open,
   loading,
-  opportunities,
-  productsById,
+  title,
+  description,
+  loadingLabel,
+  error,
   onClose
 }: {
+  open: boolean;
   loading: boolean;
-  opportunities: OpportunityDto[];
-  productsById: Map<string, ProductForCampaignReview>;
+  title: string;
+  description: string;
+  loadingLabel: string;
+  error: string | null;
   onClose: () => void;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/18 px-4 py-8 backdrop-blur-[2px]"
-      role="presentation"
-      onClick={onClose}
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !loading) {
+          onClose();
+        }
+      }}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="promotion-suggestions-title"
-        className="w-full max-w-[520px] rounded-lg border border-slate-200 bg-white p-5 shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div>
-            <h2
-              id="promotion-suggestions-title"
-              className="text-xl font-semibold text-slate-950"
-            >
-              Promotion suggestions
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Recommended products based on current inventory and sales.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-            onClick={onClose}
-            aria-label="Close suggestions"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+      <DialogContent className="sm:max-w-[460px]" showCloseButton={!loading}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
         {loading ? (
-          <LoadingPanel label="Generating promotion suggestions" />
-        ) : (
-          <div className="space-y-3">
-            {opportunities.map((opportunity, index) => {
-            const product = productsById.get(opportunity.productId);
-
-            return (
-              <article
-                key={`${opportunity.productId}-${opportunity.sku}`}
-                className="rounded-lg border border-slate-200 p-4"
-              >
-                <div className="flex gap-3">
-                  <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-sm font-semibold text-blue-700">
-                    {index + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-slate-950">
-                        {product?.name ?? opportunity.sku}
-                      </h3>
-                      <StatusPill tone={confidenceTone(opportunity.confidence)}>
-                        {opportunity.confidence}
-                      </StatusPill>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-600">
-                      <span className="font-medium text-slate-800">
-                        Why picked:
-                      </span>{" "}
-                      {opportunity.reasoning}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+          <LoadingPanel label={loadingLabel} />
+        ) : error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {error}
           </div>
-        )}
+        ) : null}
 
-        <div className="mt-5 flex justify-end">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      </section>
-    </div>
+        {!loading ? (
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </DialogFooter>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AdditionalImageDialog({
+  open,
+  loading,
+  error,
+  value,
+  onValueChange,
+  onGenerate,
+  onClose
+}: {
+  open: boolean;
+  loading: boolean;
+  error: string | null;
+  value: string;
+  onValueChange: (value: string) => void;
+  onGenerate: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !loading) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-[520px]" showCloseButton={!loading}>
+        <DialogHeader>
+          <DialogTitle>
+            {loading ? "Generating image" : "Generate another image"}
+          </DialogTitle>
+          <DialogDescription>
+            {loading
+              ? "Creating a new campaign creative variant."
+              : "Add optional creative direction for this new image."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {loading ? (
+          <LoadingPanel label="Generating image" />
+        ) : (
+          <>
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-slate-700">
+                Custom image direction
+              </span>
+              <Textarea
+                className="min-h-[112px] resize-y"
+                maxLength={500}
+                value={value}
+                placeholder="Make it warmer, more premium, use a darker background..."
+                onChange={(event) => onValueChange(event.target.value)}
+              />
+              <span className="text-right text-xs text-slate-500">
+                {value.length} / 500
+              </span>
+            </label>
+
+            {error ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {error}
+              </div>
+            ) : null}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
+                {error ? "Close" : "Cancel"}
+              </Button>
+              <Button
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={onGenerate}
+              >
+                <Sparkles className="size-4" />
+                Generate image
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1486,6 +2012,40 @@ function MetricTile({
   );
 }
 
+function SortableTableHeader({
+  label,
+  active,
+  direction,
+  onSort
+}: {
+  label: string;
+  active: boolean;
+  direction: SortDirection;
+  onSort: () => void;
+}) {
+  const Icon = !active
+    ? ArrowUpDown
+    : direction === "asc"
+      ? ArrowUp
+      : ArrowDown;
+
+  return (
+    <TableHead className="px-5 py-3">
+      <button
+        type="button"
+        className={cn(
+          "inline-flex items-center gap-1.5 text-left transition hover:text-slate-950",
+          active ? "text-slate-950" : "text-slate-500"
+        )}
+        onClick={onSort}
+      >
+        <span>{label}</span>
+        <Icon className="size-3.5" />
+      </button>
+    </TableHead>
+  );
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -1495,23 +2055,27 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InventoryFact({
+function ProductSummaryItem({
   icon,
   label,
-  value
+  value,
+  className
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className="grid size-10 place-items-center rounded-lg bg-blue-50 text-blue-700">
+    <div className={cn("flex min-w-0 items-center gap-3", className)}>
+      <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700">
         {icon}
       </div>
-      <div>
-        <p className="text-sm text-slate-500">{label}</p>
-        <p className="mt-1 font-semibold text-slate-950">{value}</p>
+      <div className="min-w-0">
+        <dt className="text-sm text-slate-500">{label}</dt>
+        <dd className="mt-1 break-words font-semibold text-slate-950">
+          {value}
+        </dd>
       </div>
     </div>
   );
@@ -1580,7 +2144,7 @@ function DiscountSlider({
       <input
         id="discount-percent"
         type="range"
-        min={1}
+        min={0}
         max={100}
         step={1}
         value={value}
@@ -1589,7 +2153,7 @@ function DiscountSlider({
         className="h-2 w-full cursor-pointer accent-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
       />
       <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-        <span>1%</span>
+        <span>0%</span>
         <span>100%</span>
       </div>
     </div>
@@ -1719,15 +2283,11 @@ async function apiRequest<T>(path: string, init?: RequestInit) {
 function buildOptionalInstructions(input: {
   aspectRatio: AspectRatioOption;
   customImagePrompt: string;
-  campaignInstructions: string;
 }) {
   const parts = [
     `Image aspect ratio preference: ${input.aspectRatio}.`,
     input.customImagePrompt.trim()
       ? `Custom image prompt: ${input.customImagePrompt.trim()}`
-      : "",
-    input.campaignInstructions.trim()
-      ? `Campaign instructions: ${input.campaignInstructions.trim()}`
       : ""
   ].filter(Boolean);
 
@@ -1776,6 +2336,10 @@ function formatCents(value: number) {
   return currencyFormat.format(value / 100);
 }
 
+function campaignImageSrc(image: CampaignImageDto) {
+  return `/api/campaigns/${encodeURIComponent(image.campaignId)}/images/${encodeURIComponent(image.imageId)}`;
+}
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -1794,26 +2358,121 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function stockLabel(product: ProductForCampaignReview) {
-  if (product.availableQuantity >= 100 && product.unitsSoldThisMonth <= 5) {
-    return "Needs promo";
+function compareProducts(
+  firstProduct: ProductForCampaignReview,
+  secondProduct: ProductForCampaignReview,
+  sortState: ProductSortState,
+  opportunitiesByProductId: Map<string, OpportunityDto>,
+  suggestionRankByProductId: Map<string, number>
+) {
+  let comparison = 0;
+
+  if (sortState.key === "suggested") {
+    const firstSuggested = opportunitiesByProductId.has(firstProduct.productId);
+    const secondSuggested = opportunitiesByProductId.has(
+      secondProduct.productId
+    );
+    const suggestedComparison =
+      Number(firstSuggested) - Number(secondSuggested);
+
+    if (suggestedComparison !== 0) {
+      return applySortDirection(suggestedComparison, sortState.direction);
+    }
+
+    if (firstSuggested && secondSuggested) {
+      comparison =
+        (suggestionRankByProductId.get(firstProduct.productId) ??
+          Number.MAX_SAFE_INTEGER) -
+        (suggestionRankByProductId.get(secondProduct.productId) ??
+          Number.MAX_SAFE_INTEGER);
+    }
+  } else {
+    switch (sortState.key) {
+      case "name":
+        comparison = compareText(firstProduct.name, secondProduct.name);
+        break;
+      case "category":
+        comparison = compareText(firstProduct.category, secondProduct.category);
+        break;
+      case "price":
+        comparison = firstProduct.priceCents - secondProduct.priceCents;
+        break;
+      case "available":
+        comparison =
+          firstProduct.availableQuantity - secondProduct.availableQuantity;
+        break;
+      case "sold":
+        comparison =
+          firstProduct.unitsSoldThisMonth - secondProduct.unitsSoldThisMonth;
+        break;
+    }
   }
 
-  if (product.availableQuantity >= 100) {
-    return "High stock";
+  if (comparison !== 0) {
+    return applySortDirection(comparison, sortState.direction);
   }
 
-  if (product.availableQuantity <= 50) {
-    return "Low stock";
-  }
-
-  return "Balanced";
+  return compareText(firstProduct.name, secondProduct.name);
 }
 
-function factTitle(fact: string) {
-  const [title] = fact.split(":");
+function compareCampaigns(
+  firstCampaign: CampaignSummaryDto,
+  secondCampaign: CampaignSummaryDto,
+  sortState: CampaignSortState
+) {
+  let comparison = 0;
 
-  return title || "Product signal";
+  switch (sortState.key) {
+    case "created":
+      comparison =
+        Date.parse(firstCampaign.createdAt) - Date.parse(secondCampaign.createdAt);
+      break;
+    case "discount":
+      comparison =
+        firstCampaign.discountPercent - secondCampaign.discountPercent;
+      break;
+    case "quantity":
+      comparison = firstCampaign.quantityLimit - secondCampaign.quantityLimit;
+      break;
+    case "images":
+      comparison = firstCampaign.imageCount - secondCampaign.imageCount;
+      break;
+    case "status":
+      comparison = 0;
+      break;
+  }
+
+  if (comparison !== 0) {
+    return applySortDirection(comparison, sortState.direction);
+  }
+
+  return Date.parse(secondCampaign.createdAt) - Date.parse(firstCampaign.createdAt);
+}
+
+function compareText(firstValue: string, secondValue: string) {
+  return firstValue.localeCompare(secondValue, undefined, {
+    numeric: true,
+    sensitivity: "base"
+  });
+}
+
+function applySortDirection(comparison: number, direction: SortDirection) {
+  return direction === "asc" ? comparison : -comparison;
+}
+
+function userInitials(email: string | undefined) {
+  if (!email) {
+    return "DU";
+  }
+
+  const [name] = email.split("@");
+  const parts = name.split(/[._-]+/).filter(Boolean);
+  const initials = parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || "DU";
 }
 
 function confidenceTone(confidence: OpportunityDto["confidence"]) {

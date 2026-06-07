@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Retail Promo Agent",
+  title: "Promo Campaign Studio",
   description: "A local eCommerce promo workflow powered by Codex."
 };
 

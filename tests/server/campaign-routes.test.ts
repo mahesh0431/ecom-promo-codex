@@ -43,6 +43,8 @@ describe("campaign routes", () => {
     expect(body.data.opportunities).toHaveLength(3);
     expect(body.data.opportunities[0]).toMatchObject({
       sku: "SKU-COF-COLD-001",
+      recommendedDiscountPercent: 15,
+      recommendedQuantityLimit: 50,
       confidence: "high"
     });
     await expect(prisma.campaign.count()).resolves.toBe(0);

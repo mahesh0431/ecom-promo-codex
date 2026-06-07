@@ -1,6 +1,6 @@
 # ecom-promo-codex
 
-Retail Promo Agent is a small eCommerce demo app where Codex helps a store team decide which products need a promotion and then creates a campaign from real product context.
+Promo Campaign Studio is a small eCommerce demo app where Codex helps a store team decide which products need a promotion and then creates a campaign from real product context.
 
 The app is intentionally narrow. It is not a generic chatbot and it is not trying to become a commerce platform. It is one practical workflow: look at product data, explain the recommendation, create the campaign, and save the result.
 
@@ -8,7 +8,7 @@ The app is intentionally narrow. It is not a generic chatbot and it is not tryin
 
 Most promotion workflows start with a blank brief or a rushed guess. This demo starts with product and sales data. Codex reviews that context through a small read-only MCP layer, recommends products that need campaign attention, and helps generate the campaign once the user chooses the offer terms.
 
-The point is to show Codex inside a real application workflow: authenticated UI, persisted data, scoped tools, generated campaign output, and generated images.
+The point is to show Codex inside a real application workflow: authenticated UI, persisted data, scoped tools, generated campaign output, and campaign creative.
 
 ## Under The Hood
 
@@ -26,9 +26,9 @@ The point is to show Codex inside a real application workflow: authenticated UI,
 3. Click `Generate Promotion Suggestions`.
 4. Open `View recommendation` on a suggested product.
 5. Click `Create campaign` from the recommendation.
-6. Set discount, quantity limit, and image variant count.
+6. Review or adjust discount, quantity limit, and image variant count.
 7. Click `Generate`.
-8. Review the AI recommendation, caption, image prompt, and generated images.
+8. Review the caption, image prompt, and campaign creative.
 
 ## Run It Locally
 
@@ -90,6 +90,8 @@ For deterministic fake mode, validation commands, and live smoke tests, see [Loc
 ## Project Boundaries
 
 This is a demo app, not a commerce platform. It deliberately avoids signup, payments, Shopify integration, complex RBAC, queues, scheduling, approval workflows, and generic chat UI.
+
+Dashboard sorting is client-side over the seeded demo dataset. V0 intentionally does not include server-side sorting, filtering, or pagination.
 
 ## License
 

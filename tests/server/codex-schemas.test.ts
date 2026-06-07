@@ -21,6 +21,8 @@ describe("Codex output schemas", () => {
           signalSummary: "High stock and low current-month sales",
           reasoning:
             "MCP shows 180 units available and only 3 units sold this month.",
+          recommendedDiscountPercent: 15,
+          recommendedQuantityLimit: 50,
           confidence: "high"
         }
       ]
@@ -43,6 +45,8 @@ describe("Codex output schemas", () => {
             sku: "SKU-001",
             signalSummary: "Signal 1",
             reasoning: "Reasoning 1",
+            recommendedDiscountPercent: 15,
+            recommendedQuantityLimit: 50,
             confidence: "medium"
           },
           {
@@ -50,6 +54,8 @@ describe("Codex output schemas", () => {
             sku: "SKU-002",
             signalSummary: "Signal 2",
             reasoning: "Reasoning 2",
+            recommendedDiscountPercent: 15,
+            recommendedQuantityLimit: 50,
             confidence: "medium"
           },
           {
@@ -57,6 +63,8 @@ describe("Codex output schemas", () => {
             sku: "SKU-003",
             signalSummary: "Signal 3",
             reasoning: "Reasoning 3",
+            recommendedDiscountPercent: 15,
+            recommendedQuantityLimit: 50,
             confidence: "medium"
           },
           {
@@ -64,6 +72,8 @@ describe("Codex output schemas", () => {
             sku: "SKU-004",
             signalSummary: "Signal 4",
             reasoning: "Reasoning 4",
+            recommendedDiscountPercent: 15,
+            recommendedQuantityLimit: 50,
             confidence: "medium"
           }
         ]
@@ -104,6 +114,8 @@ describe("campaign API contract schemas", () => {
         sku: "SKU-COF-COLD-001",
         signalSummary: "High stock, low current-month sales",
         reasoning: "MCP shows 180 units available and 3 units sold this month.",
+        recommendedDiscountPercent: 15,
+        recommendedQuantityLimit: 50,
         confidence: "low"
       })
     ).toEqual({
@@ -111,6 +123,8 @@ describe("campaign API contract schemas", () => {
       sku: "SKU-COF-COLD-001",
       signalSummary: "High stock, low current-month sales",
       reasoning: "MCP shows 180 units available and 3 units sold this month.",
+      recommendedDiscountPercent: 15,
+      recommendedQuantityLimit: 50,
       confidence: "low"
     });
   });

@@ -9,6 +9,8 @@ export const opportunityDtoSchema = z
     sku: z.string().min(1),
     signalSummary: z.string().min(1),
     reasoning: z.string().min(1),
+    recommendedDiscountPercent: z.number().int().min(1).max(100),
+    recommendedQuantityLimit: z.number().int().positive(),
     confidence: codexConfidenceSchema
   })
   .strict();

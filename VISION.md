@@ -19,8 +19,8 @@ The product should feel like a focused workflow, not a generic chatbot. The user
 5. Codex uses read-only MCP tools to inspect product and sales context.
 6. Codex highlights the products that need campaign attention.
 7. The user can view an AI recommendation for each suggested product and start campaign creation from that recommendation.
-8. The campaign create page asks for required offer terms: discount, quantity limit, and initial image variant count.
-9. The user can add optional campaign instructions.
+8. The campaign create page asks for required offer and image setup: discount, quantity limit, initial image variant count, and aspect ratio.
+9. The user can add an optional custom image prompt.
 10. Codex generates campaign content and image prompts from the product context and offer terms.
 11. The backend generates the initial image variants, then saves and displays the campaign.
 12. The campaign detail page can generate additional image variants later.
@@ -33,8 +33,6 @@ A generated campaign can include:
 - product and sales signal;
 - discount;
 - quantity limit;
-- AI recommendation;
-- optional user instructions;
 - Instagram caption;
 - image prompt;
 - generated image variants.

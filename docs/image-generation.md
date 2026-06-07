@@ -15,6 +15,7 @@ The backend generates images:
 
 - uses the campaign image prompt returned by Codex during creation;
 - reads the saved campaign image prompt for later additional variants;
+- can append optional user-provided direction for a new additional variant;
 - calls the OpenAI image generation API;
 - stores decoded image bytes in `CampaignImage.imageData`;
 - serves metadata through JSON routes and raw bytes through the image route.
@@ -35,7 +36,8 @@ Additional variants use the saved campaign:
 ```text
 Saved campaign
   -> user clicks Generate Another Image Variant
-  -> backend sends imagePrompt to OpenAI image generation
+  -> UI optionally asks what should be different
+  -> backend sends imagePrompt plus optional direction to OpenAI image generation
   -> backend stores CampaignImage rows
   -> future UI reads metadata and fetches raw image bytes
 ```

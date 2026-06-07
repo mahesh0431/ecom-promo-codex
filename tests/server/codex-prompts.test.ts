@@ -11,6 +11,8 @@ describe("Codex prompts", () => {
 
     expect(prompt).toContain("list_products_for_campaign_review");
     expect(prompt).toContain("copy productId and sku exactly");
+    expect(prompt).toContain("recommendedDiscountPercent");
+    expect(prompt).toContain("recommendedQuantityLimit");
     expect(prompt).toContain("Do not invent, shorten, or transform productId");
   });
 

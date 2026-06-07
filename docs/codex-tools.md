@@ -24,6 +24,8 @@ Codex runs use the backend `OPENAI_API_KEY`. The backend passes that value throu
 
 Codex SDK runs default to `gpt-5.5`, low reasoning, disabled web search, an app-owned Codex home at `output/codex-runtime/home`, and an app-owned working directory at `output/codex-runtime/workspace`. Codex may create its own state, system skills, and plugin marketplace cache inside that home; those generated files stay under ignored `output/` instead of `data/` or a developer's personal Codex profile.
 
+Each promotion suggestion or campaign generation request starts a fresh Codex thread for that job while reusing the same app-owned home and workspace. V0 avoids one long-lived app-wide thread so independent jobs do not leak context into each other.
+
 Codex cannot:
 
 - write to the database;
@@ -101,10 +103,12 @@ opportunities:
     sku
     signalSummary
     reasoning
+    recommendedDiscountPercent
+    recommendedQuantityLimit
     confidence
 ```
 
-The UI highlights those products. Opportunity results do not need their own persistent table.
+The UI highlights those products and can prefill the campaign setup with the recommended offer terms. Opportunity results do not need their own persistent table.
 
 This output is produced by Codex, not by the MCP server.
 
@@ -119,7 +123,7 @@ reasoning
 productId
 ```
 
-The backend passes the selected product context plus user-entered offer terms, including discount and quantity limit, into the campaign generation prompt. Codex should reflect those terms in the caption and image prompt.
+The backend passes the selected product context plus user-confirmed offer terms, including discount and quantity limit, into the campaign generation prompt. Codex should reflect those terms in the caption and image prompt.
 
 The backend saves this as a campaign. The saved `imagePrompt` is used for the initial image variants during campaign creation and for later additional image variants.
 

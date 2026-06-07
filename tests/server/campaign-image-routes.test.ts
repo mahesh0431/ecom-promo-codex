@@ -38,7 +38,10 @@ describe("campaign image routes", () => {
         `http://localhost/api/campaigns/${campaign.id}/images/generate`,
         {
           method: "POST",
-          body: JSON.stringify({ variants: 2 })
+          body: JSON.stringify({
+            variants: 2,
+            customInstructions: "Use warmer studio lighting."
+          })
         }
       ),
       { params: Promise.resolve({ campaignId: campaign.id }) }
@@ -54,6 +57,14 @@ describe("campaign image routes", () => {
       status: "completed"
     });
     expect(generateBody.data.images[0]).not.toHaveProperty("imageData");
+
+    const storedImages = await prisma.campaignImage.findMany({
+      where: { campaignId: campaign.id },
+      orderBy: { variantIndex: "asc" }
+    });
+    expect(storedImages[0]?.prompt).toContain(
+      "Additional image direction: Use warmer studio lighting."
+    );
 
     const listResponse = await listImages(
       await authenticatedRequest(

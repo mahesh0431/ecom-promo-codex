@@ -11,6 +11,7 @@ type GenerateImagesForCampaignInput = {
   userId: string;
   campaignId: string;
   variants?: number;
+  customInstructions?: string | null;
 };
 
 export async function generateImagesForCampaign(
@@ -19,8 +20,12 @@ export async function generateImagesForCampaign(
 ) {
   const campaign = await getOwnedCampaign(input.userId, input.campaignId);
   const variants = normalizeVariants(input.variants);
+  const imagePrompt = buildAdditionalImagePrompt(
+    campaign.imagePrompt,
+    input.customInstructions
+  );
   const generatedImages = await generateCampaignImageBytes({
-    prompt: campaign.imagePrompt,
+    prompt: imagePrompt,
     variants
   }, gateway);
 
@@ -37,7 +42,7 @@ export async function generateImagesForCampaign(
         tx.campaignImage.create({
           data: createCampaignImageRecordData({
             campaignId: campaign.id,
-            prompt: campaign.imagePrompt,
+            prompt: imagePrompt,
             image,
             variantIndex: nextVariantIndex + index
           })
@@ -47,6 +52,22 @@ export async function generateImagesForCampaign(
   });
 
   return { images: created.map(toCampaignImageMetadataDto) };
+}
+
+function buildAdditionalImagePrompt(
+  savedImagePrompt: string,
+  customInstructions: string | null | undefined
+) {
+  const trimmedInstructions = customInstructions?.trim();
+
+  if (!trimmedInstructions) {
+    return savedImagePrompt;
+  }
+
+  return [
+    savedImagePrompt,
+    `Additional image direction: ${trimmedInstructions.slice(0, 500)}`
+  ].join("\n\n");
 }
 
 export async function generateCampaignImageBytes(

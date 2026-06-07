@@ -9,7 +9,12 @@ export const runtime = "nodejs";
 
 const generateImagesRequestSchema = z
   .object({
-    variants: z.number().int().optional()
+    variants: z.number().int().optional(),
+    customInstructions: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
+      z.string().max(500).optional()
+    )
   })
   .optional()
   .default({});
@@ -30,7 +35,8 @@ export async function POST(request: Request, context: RouteContext) {
     const result = await generateImagesForCampaign({
       userId: session.user.id,
       campaignId,
-      variants: payload.variants
+      variants: payload.variants,
+      customInstructions: payload.customInstructions
     });
 
     return successResponse(result, 201);

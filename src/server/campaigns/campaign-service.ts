@@ -51,7 +51,11 @@ export async function findCampaignOpportunitiesForUser(
     return {
       ...opportunity,
       productId: product.productId,
-      sku: product.sku
+      sku: product.sku,
+      recommendedQuantityLimit: Math.min(
+        opportunity.recommendedQuantityLimit,
+        product.availableQuantity
+      )
     };
   });
 
