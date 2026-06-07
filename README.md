@@ -146,7 +146,7 @@ The skill should stop and ask you to follow this README setup if `.env`, `OPENAI
 
 Pull requests run deterministic CI through GitHub Actions: lint, typecheck, tests, and build. The repo also includes a Codex PR review workflow that runs `openai/codex-action@v1` against a generated PR patch and posts Codex feedback as a PR comment.
 
-To enable Codex PR review, add `OPENAI_API_KEY` as a GitHub Actions repository secret. Codex review runs from the trusted workflow context on non-draft PRs opened from this repo, so forked PRs do not receive the secret. CI should be treated as the merge gate; Codex review is an additional reviewer for bugs, workflow regressions, and demo-risk issues.
+To enable Codex PR review, add `OPENAI_API_KEY` as a GitHub Actions repository secret. Codex review runs from the trusted workflow context on non-draft PRs, and the public repo is configured so only collaborators can create pull requests. CI should be treated as the merge gate; Codex review is an additional reviewer for bugs, workflow regressions, and demo-risk issues.
 
 ## Docs
 
