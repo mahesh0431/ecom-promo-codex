@@ -153,7 +153,7 @@ To enable Codex PR review, add `OPENAI_API_KEY` as a GitHub Actions repository s
 - [Vision](VISION.md) and [Architecture](ARCHITECTURE.md) explain the idea and technical shape.
 - [Docs](docs/README.md) maps setup, product docs, API smoke checks, and implementation plans.
 - [Product docs](docs/product/README.md) cover workflow behavior, data, auth, Codex/MCP, images, voice, and UI references.
-- [ExecPlans](docs/exec-plans/README.md) hold exact implementation plans and completed plan history.
+- [PLAN.md](docs/PLAN.md) explains how exact implementation plans are written; `docs/exec-plans/` stores active and completed plans.
 
 ## Project Boundaries
 

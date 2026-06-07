@@ -14,14 +14,15 @@ Start with these:
 - `ARCHITECTURE.md` for the technical direction.
 - `docs/setup.md` for local setup, runtime modes, and validation commands.
 - `docs/product/` for product behavior and technical product docs.
-- `docs/exec-plans/` for exact implementation plans.
+- `docs/PLAN.md` for the exact implementation planning guide.
+- `docs/exec-plans/` for active and completed implementation plans.
 - `docs/` root for common operational docs.
 
 If a new decision, workflow, interface, or implementation detail does not fit an existing doc, create a new doc in the closest matching docs folder and link it from the most relevant existing place.
 
 ## Planning Rules
 
-Use `docs/exec-plans/README.md` when creating implementation plans.
+Use `docs/PLAN.md` when creating implementation plans.
 
 When creating an ExecPlan, draft it first, validate that exact draft with a fresh sub-agent, then update it with useful feedback before implementation.
 
