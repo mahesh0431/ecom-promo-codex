@@ -20,11 +20,12 @@ The setup command:
 
 - creates `.env` and `.env.test` if they do not exist;
 - creates the local `data/` folder;
+- generates the Prisma client;
 - runs the database migration;
 - seeds the demo user and products;
 - verifies the seed data.
 
-For live Codex and image generation, add one server-side OpenAI key to `.env`:
+For the live Codex SDK agent, image generation, and realtime voice, add one server-side OpenAI key to `.env`:
 
 ```text
 OPENAI_API_KEY="..."
@@ -33,7 +34,7 @@ IMAGE_GENERATION_MODE="openai"
 
 The backend uses this same key for Codex SDK runs, OpenAI image generation, and realtime voice session secrets. The browser UI should never ask for an API key.
 
-Seeded login:
+The seed script defaults the local demo user to:
 
 ```text
 Email: demo@promo.test
@@ -89,6 +90,7 @@ pnpm build
 If you need to rerun individual setup steps, they are still available:
 
 ```bash
+pnpm prisma:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm db:verify

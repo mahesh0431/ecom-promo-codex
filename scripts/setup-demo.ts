@@ -31,9 +31,13 @@ mkdirSync("data", { recursive: true });
 copyIfMissing(".env.example", ".env");
 copyIfMissing(".env.test.example", ".env.test");
 
+run("pnpm", ["prisma:generate"]);
 run("pnpm", ["prisma", "migrate", "deploy"]);
 run("pnpm", ["db:seed"]);
 run("pnpm", ["db:verify"]);
 
 console.log("\nDemo setup complete.");
-console.log("Add OPENAI_API_KEY to .env for live Codex and image generation.");
+console.log("Demo login: demo@promo.test / demo-password");
+console.log(
+  "Add OPENAI_API_KEY to .env for live Codex SDK, image generation, and realtime voice."
+);

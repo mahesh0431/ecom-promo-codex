@@ -143,7 +143,7 @@ Codex SDK owns:
 The MCP server owns:
 
 - exposing safe product and sales context;
-- returning product and sales facts for campaign review;
+- returning product and sales facts for campaign analysis;
 - avoiding final opportunity selection so Codex owns the reasoning step;
 - refusing writes, secrets, auth/session access, and image generation.
 

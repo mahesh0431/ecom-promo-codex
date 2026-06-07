@@ -1,6 +1,6 @@
 # Promo Campaign MCP Contract
 
-Codex should feel agentic without getting unsafe or overbuilt.
+The Codex SDK agent should feel useful without getting unsafe or overbuilt.
 
 The app gives Codex read-only access to campaign/product context through a tiny MCP server called `promo-campaign-mcp`. MCP returns safe facts and summaries. Codex decides what to inspect, which products deserve campaign attention, and why. The backend validates and persists the final result.
 
