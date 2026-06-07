@@ -76,7 +76,7 @@ Selecting one product on the products page and clicking `Create campaign` opens 
 
 Required campaign setup fields:
 
-- discount;
+- discount percent slider from 1% to 100%;
 - quantity limit;
 - initial image variant count.
 

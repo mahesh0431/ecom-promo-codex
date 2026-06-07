@@ -218,11 +218,11 @@ function assertCampaignCreationInput(input: GenerateCampaignInput) {
   if (
     !Number.isInteger(input.discountPercent) ||
     input.discountPercent < 1 ||
-    input.discountPercent > 90
+    input.discountPercent > 100
   ) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "Discount percent must be an integer from 1 to 90.",
+      "Discount percent must be an integer from 1 to 100.",
       400
     );
   }

@@ -125,6 +125,28 @@ describe("campaign service", () => {
     expect(stored?.images).toHaveLength(2);
   });
 
+  test("accepts a 100 percent discount", async () => {
+    const user = await getSeededUser();
+    const codexGateway = createFakeCodexGateway();
+    const imageGateway = createFakeImageGenerationGateway();
+    const coldBrew = await getColdBrewProduct();
+
+    const { campaign } = await generateCampaignForUser(
+      {
+        userId: user.id,
+        productId: coldBrew.productId,
+        discountPercent: 100,
+        quantityLimit: 10,
+        imageVariants: 1
+      },
+      codexGateway,
+      imageGateway
+    );
+
+    expect(campaign.discountPercent).toBe(100);
+    expect(campaign.prompt).toContain("Discount: 100%");
+  });
+
   test("lists and reads only campaigns owned by the user", async () => {
     const user = await getSeededUser();
     const otherUser = await prisma.user.create({
@@ -223,6 +245,27 @@ describe("campaign service", () => {
           productId: coldBrew.productId,
           discountPercent: 15,
           quantityLimit: coldBrew.availableQuantity + 1,
+          imageVariants: 1
+        },
+        gateway
+      )
+    ).rejects.toMatchObject({
+      code: "VALIDATION_ERROR"
+    });
+  });
+
+  test("rejects discount percentages above 100", async () => {
+    const user = await getSeededUser();
+    const gateway = createFakeCodexGateway();
+    const coldBrew = await getColdBrewProduct();
+
+    await expect(
+      generateCampaignForUser(
+        {
+          userId: user.id,
+          productId: coldBrew.productId,
+          discountPercent: 101,
+          quantityLimit: 10,
           imageVariants: 1
         },
         gateway

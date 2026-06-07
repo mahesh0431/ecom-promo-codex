@@ -1,107 +1,93 @@
 # ecom-promo-codex
 
-An open-source demo app for an eCommerce promotion workflow powered by Codex.
+Retail Promo Agent is a small eCommerce demo app where Codex helps a store team decide which products need a promotion and then creates a campaign from real product context.
 
-See [VISION.md](VISION.md) for the current product direction.
+The app is intentionally narrow. It is not a generic chatbot and it is not trying to become a commerce platform. It is one practical workflow: look at product data, explain the recommendation, create the campaign, and save the result.
 
-## Backend Setup
+## Why This Exists
 
-This repo currently exposes backend-first Next.js route handlers, Prisma/SQLite persistence, seeded demo data, and seeded-only auth.
+Most promotion workflows start with a blank brief or a rushed guess. This demo starts with product and sales data. Codex reviews that context through a small read-only MCP layer, recommends products that need campaign attention, and helps generate the campaign once the user chooses the offer terms.
+
+The point is to show Codex inside a real application workflow: authenticated UI, persisted data, scoped tools, generated campaign output, and generated images.
+
+## Under The Hood
+
+- A seeded demo login.
+- SQLite persistence through Prisma.
+- A read-only MCP layer for product and sales context.
+- Codex SDK calls for promotion suggestions and campaign generation.
+- OpenAI image generation for campaign variants.
+- A simple Next.js UI built with Tailwind CSS and shadcn-style components.
+
+## The Demo Flow
+
+1. Sign in with the seeded demo account.
+2. Open the products dashboard.
+3. Click `Generate Promotion Suggestions`.
+4. Open `View recommendation` on a suggested product.
+5. Click `Create campaign` from the recommendation.
+6. Set discount, quantity limit, and image variant count.
+7. Click `Generate`.
+8. Review the AI recommendation, caption, image prompt, and generated images.
+
+## Run It Locally
+
+Requirements:
+
+- Node.js 20+
+- pnpm 10+
+- one `OPENAI_API_KEY` for live Codex and image generation
 
 ```bash
-pnpm install
-test -f .env || cp .env.example .env
-test -f .env.test || cp .env.test.example .env.test
-mkdir -p data
-pnpm db:migrate -- --name init
-pnpm prisma:generate
-pnpm db:seed
-pnpm db:verify
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm build
+pnpm install && pnpm setup:demo
 ```
 
-Run the local backend:
+Add your OpenAI key to `.env`:
+
+```text
+OPENAI_API_KEY="..."
+```
+
+Start the app:
 
 ```bash
 pnpm dev
 ```
 
-Run deterministic campaign APIs without live Codex:
+Then open:
 
-```bash
-CODEX_GATEWAY=fake pnpm dev
+```text
+http://localhost:3000
 ```
 
-Live OpenAI features use one server-side key. Set `OPENAI_API_KEY` once and the backend uses it for both Codex SDK runs and image generation.
-
-Codex SDK runs use `gpt-5.5` with low reasoning by default. Codex state, plugin/skill cache, and session JSONL stay under ignored `output/codex-runtime/home`, and Codex runs from ignored `output/codex-runtime/workspace` instead of relying on your personal `~/.codex` profile.
-
-`IMAGE_GENERATION_MODE` is only a non-secret runtime switch: use `fake` for deterministic tests/local fallback and `openai` for live image generation.
-
-Run the real Codex SDK/MCP smoke when `OPENAI_API_KEY` is available:
-
-```bash
-RUN_CODEX_LIVE=1 pnpm codex:smoke
-```
-
-Run the real OpenAI image smoke when `OPENAI_API_KEY` is available:
-
-```bash
-RUN_IMAGE_LIVE=1 pnpm image:smoke
-```
-
-Run the full live backend integration suite when `OPENAI_API_KEY` is available:
-
-```bash
-RUN_LIVE_INTEGRATION=1 pnpm integration:live
-```
-
-This uses an isolated `data/live-integration.sqlite` database and writes a non-secret report under `output/live-integration/`, including the Codex session JSONL filenames created under the app-owned Codex runtime home. `codex:smoke` and `image:smoke` remain useful lower-level diagnostics when the full workflow fails.
-
-Useful local checks:
-
-```bash
-curl -s http://localhost:3000/api/health
-curl -i http://localhost:3000/api/products/overview
-curl -i -c /tmp/ecom-promo-cookies.txt \
-  -H "Content-Type: application/json" \
-  -d '{"email":"demo@promo.test","password":"demo-password"}' \
-  http://localhost:3000/api/auth/login
-curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/auth/session
-curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/products/overview
-curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/products
-curl -s -b /tmp/ecom-promo-cookies.txt \
-  -X POST http://localhost:3000/api/campaign-opportunities
-curl -s -b /tmp/ecom-promo-cookies.txt \
-  -H "Content-Type: application/json" \
-  -d '{"productId":"<productId>","discountPercent":15,"quantityLimit":50,"imageVariants":1,"optionalInstructions":"Keep it warm and premium."}' \
-  http://localhost:3000/api/campaigns/generate
-curl -s -b /tmp/ecom-promo-cookies.txt http://localhost:3000/api/campaigns
-```
-
-## Demo Login
-
-Use the seeded demo account when running locally:
+Demo login:
 
 ```text
 Email: demo@promo.test
 Password: demo-password
 ```
 
+Live Codex and image generation use the single server-side `OPENAI_API_KEY` from `.env`. The app never asks for the key in the browser.
+
+For deterministic fake mode, validation commands, and live smoke tests, see [Local Setup](docs/setup.md).
+
 ## Docs
 
-- [Vision](VISION.md)
-- [Architecture](ARCHITECTURE.md)
-- [Auth](docs/auth.md)
-- [Campaign workflow](docs/campaign-workflow.md)
-- [Data model](docs/data-model.md)
-- [Codex MCP contract](docs/codex-tools.md)
-- [Image generation](docs/image-generation.md)
-- [Dashboard references](docs/dashboard/README.md)
-- [ExecPlan guide](docs/PLANS.md)
+- [Vision](VISION.md): product idea, core flow, and boundaries.
+- [Architecture](ARCHITECTURE.md): technical shape and runtime boundaries.
+- [Local Setup](docs/setup.md): install, environment, scripts, and validation.
+- [Campaign Workflow](docs/campaign-workflow.md): product dashboard, recommendations, campaign creation, and campaign history.
+- [Data Model](docs/data-model.md): SQLite/Prisma entities and persistence rules.
+- [Auth](docs/auth.md): seeded demo auth and session behavior.
+- [Codex MCP Contract](docs/codex-tools.md): how Codex gets safe product context.
+- [Image Generation](docs/image-generation.md): OpenAI image generation flow and storage.
+- [API Smoke Checks](docs/api-smoke.md): curl-based checks for backend routes.
+- [Dashboard References](docs/dashboard/README.md): accepted UI reference images.
+- [ExecPlan Guide](docs/PLANS.md): implementation planning format.
+
+## Project Boundaries
+
+This is a demo app, not a commerce platform. It deliberately avoids signup, payments, Shopify integration, complex RBAC, queues, scheduling, approval workflows, and generic chat UI.
 
 ## License
 

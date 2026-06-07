@@ -1050,7 +1050,7 @@ function CampaignWorkspace({
     campaignDetail?.campaign.optionalInstructions ?? campaignInstructions;
   const validQuantity =
     quantityLimit >= 1 && quantityLimit <= product.availableQuantity;
-  const validDiscount = discountPercent >= 1 && discountPercent <= 90;
+  const validDiscount = discountPercent >= 1 && discountPercent <= 100;
   const canGenerate =
     !readOnly && validQuantity && validDiscount && imageVariants >= 1;
 
@@ -1109,17 +1109,19 @@ function CampaignWorkspace({
         </h1>
       </div>
 
-      <section className="flex max-w-[720px] items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-slate-100 text-blue-700">
-          <Package className="size-6" />
+      <section className="grid gap-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] lg:items-center">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-slate-100 text-blue-700">
+            <Package className="size-6" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold text-slate-950">
+              {product.name}
+            </h2>
+            <p className="text-sm text-slate-500">{product.category}</p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-semibold text-slate-950">
-            {product.name}
-          </h2>
-          <p className="text-sm text-slate-500">{product.category}</p>
-        </div>
-        <div className="hidden gap-8 border-l border-slate-200 pl-6 sm:flex">
+        <div className="grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
           <Fact
             label="Available stock"
             value={`${numberFormat.format(product.availableQuantity)} units`}
@@ -1141,43 +1143,41 @@ function CampaignWorkspace({
 
         <div className="grid gap-5 lg:grid-cols-[minmax(360px,0.9fr)_minmax(320px,1.1fr)]">
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <NumberField
-                label="Discount percent"
-                suffix="%"
-                min={1}
-                max={90}
+            <div className="space-y-4">
+              <DiscountSlider
                 value={displayedDiscountPercent}
                 disabled={readOnly || generating}
                 onChange={setDiscountPercent}
               />
-              <NumberField
-                label="Quantity limit"
-                suffix="units"
-                min={1}
-                max={product.availableQuantity}
-                value={displayedQuantityLimit}
-                disabled={readOnly || generating}
-                onChange={setQuantityLimit}
-              />
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Image variants
-                </label>
-                <div className="grid grid-cols-2 divide-x divide-slate-300 overflow-hidden rounded-lg border border-slate-300">
-                  {[1, 2].map((variantCount) => (
-                    <button
-                      key={variantCount}
-                      type="button"
-                      className={segmentedButtonClass(
-                        displayedImageVariants === variantCount
-                      )}
-                      disabled={readOnly || generating}
-                      onClick={() => setImageVariants(variantCount)}
-                    >
-                      {variantCount}
-                    </button>
-                  ))}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <NumberField
+                  label="Quantity limit"
+                  suffix="units"
+                  min={1}
+                  max={product.availableQuantity}
+                  value={displayedQuantityLimit}
+                  disabled={readOnly || generating}
+                  onChange={setQuantityLimit}
+                />
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Image variants
+                  </label>
+                  <div className="grid grid-cols-2 divide-x divide-slate-300 overflow-hidden rounded-lg border border-slate-300">
+                    {[1, 2].map((variantCount) => (
+                      <button
+                        key={variantCount}
+                        type="button"
+                        className={segmentedButtonClass(
+                          displayedImageVariants === variantCount
+                        )}
+                        disabled={readOnly || generating}
+                        onClick={() => setImageVariants(variantCount)}
+                      >
+                        {variantCount}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1552,6 +1552,47 @@ function NumberField({
         <span className="shrink-0 px-3 text-xs text-slate-500">{suffix}</span>
       </span>
     </label>
+  );
+}
+
+function DiscountSlider({
+  value,
+  disabled,
+  onChange
+}: {
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <label
+          className="text-sm font-medium text-slate-700"
+          htmlFor="discount-percent"
+        >
+          Discount percent
+        </label>
+        <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-sm font-semibold text-blue-700">
+          {value}%
+        </span>
+      </div>
+      <input
+        id="discount-percent"
+        type="range"
+        min={1}
+        max={100}
+        step={1}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(toInteger(event.target.value))}
+        className="h-2 w-full cursor-pointer accent-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+      />
+      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
+        <span>1%</span>
+        <span>100%</span>
+      </div>
+    </div>
   );
 }
 

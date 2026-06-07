@@ -16,7 +16,7 @@ export const opportunityDtoSchema = z
 export const generateCampaignRequestSchema = z
   .object({
     productId: z.string().min(1),
-    discountPercent: z.number().int().min(1).max(90),
+    discountPercent: z.number().int().min(1).max(100),
     quantityLimit: z.number().int().positive(),
     imageVariants: z.number().int().min(1).max(MAX_IMAGE_VARIANTS),
     optionalInstructions: z.preprocess(
@@ -43,7 +43,7 @@ export const campaignDtoSchema = z
     product: campaignProductDtoSchema,
     prompt: z.string().min(1),
     optionalInstructions: z.string().min(1).nullable(),
-    discountPercent: z.number().int().min(1).max(90),
+    discountPercent: z.number().int().min(1).max(100),
     quantityLimit: z.number().int().positive(),
     initialImageVariantsRequested: z.number()
       .int()
@@ -62,7 +62,7 @@ export const campaignSummaryDtoSchema = z
     productId: z.string().min(1),
     productName: z.string().min(1),
     sku: z.string().min(1),
-    discountPercent: z.number().int().min(1).max(90),
+    discountPercent: z.number().int().min(1).max(100),
     quantityLimit: z.number().int().positive(),
     initialImageVariantsRequested: z.number()
       .int()

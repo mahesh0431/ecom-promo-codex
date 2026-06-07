@@ -146,6 +146,20 @@ describe("campaign API contract schemas", () => {
       quantityLimit: 80,
       imageVariants: 1
     });
+
+    expect(
+      generateCampaignRequestSchema.parse({
+        productId: "product-1",
+        discountPercent: 100,
+        quantityLimit: 80,
+        imageVariants: 1
+      })
+    ).toEqual({
+      productId: "product-1",
+      discountPercent: 100,
+      quantityLimit: 80,
+      imageVariants: 1
+    });
   });
 
   test("rejects generate campaign requests missing promo terms", () => {
@@ -157,6 +171,15 @@ describe("campaign API contract schemas", () => {
       generateCampaignRequestSchema.parse({
         productId: "product-1",
         discountPercent: 0,
+        quantityLimit: 80,
+        imageVariants: 1
+      })
+    ).toThrow();
+
+    expect(() =>
+      generateCampaignRequestSchema.parse({
+        productId: "product-1",
+        discountPercent: 101,
         quantityLimit: 80,
         imageVariants: 1
       })

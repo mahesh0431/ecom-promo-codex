@@ -6,12 +6,13 @@ Keep the project simple and aligned with the docs. The point is to show a practi
 
 ## Documentation
 
-The project docs explain the product vision, architecture, campaign workflow, data model, Codex/MCP usage, image generation flow, and implementation planning approach.
+The project docs explain the product vision, architecture, local setup, campaign workflow, data model, Codex/MCP usage, image generation flow, API smoke checks, and implementation planning approach.
 
 Start with these:
 
 - `VISION.md` for the product idea and scope.
 - `ARCHITECTURE.md` for the technical direction.
+- `docs/setup.md` for local setup, runtime modes, and validation commands.
 - `docs/` for supporting details.
 
 If a new decision, workflow, interface, or implementation detail does not fit an existing doc, create a new doc under `docs/` and link it from the most relevant existing place.

@@ -65,8 +65,8 @@ This plan is backend-only. It does not implement the UI pages or generate new UI
   Rationale: Campaign creation should reject invalid image counts instead of silently normalizing a required form field.
   Date/Author: 2026-06-06 / Codex
 
-- Decision: Validate `discountPercent` as an integer from 1 to 90.
-  Rationale: Zero means no promo, and values above 90 are unrealistic for this demo.
+- Decision: Validate `discountPercent` as an integer from 1 to 100.
+  Rationale: Zero means no promo, and 100 is the natural upper bound for a discount percentage.
   Date/Author: 2026-06-06 / Codex
 
 - Decision: Validate `quantityLimit` as a positive integer that cannot exceed the selected product's available quantity.
