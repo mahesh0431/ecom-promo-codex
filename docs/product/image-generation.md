@@ -1,6 +1,6 @@
 # Image Generation
 
-Image generation is part of campaign creation in V0. It stays backend-owned and separate from the Codex SDK proof, but the user should see initial image variants created with the campaign.
+Image generation is part of campaign creation. It stays backend-owned and separate from the Codex SDK proof, but the user should see initial image variants created with the campaign.
 
 ## Role Split
 
@@ -44,7 +44,7 @@ Saved campaign
 
 ## Local and Failure Behavior
 
-Image generation is mandatory for campaign creation in V0. Local development and tests can use deterministic fake image generation. The final demo path should use live OpenAI image generation.
+Image generation is mandatory for campaign creation in the demo. Local development and tests can use deterministic fake image generation. The final demo path should use live OpenAI image generation.
 
 If live image generation fails during campaign creation, the backend returns an image-generation error and does not save a partial campaign row.
 

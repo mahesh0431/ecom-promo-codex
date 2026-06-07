@@ -16,11 +16,11 @@ The app keeps the workflow simple:
 
 This is intentionally not a full commerce platform.
 
-## Roadmap
+## Demo Scope
 
-### V0: Instagram Promo Demo
+### Core Campaign Workflow
 
-V0 is the interview demo.
+The core workflow is the main interview demo.
 
 It should prove:
 
@@ -33,17 +33,17 @@ It should prove:
 - OpenAI image generation;
 - saved campaign images and recent campaigns.
 
-V0 should stay focused on the demo flow and avoid unrelated platform features.
+The workflow should stay focused on the demo flow and avoid unrelated platform features.
 
-### V1: Voice Integration
+### Voice Integration
 
-V1 adds realtime voice so the user can talk through campaign refinement instead of only typing.
+Voice integration lets the user talk through campaign refinement instead of only typing.
 
 Voice is browser UI control, not a second backend workflow. The browser receives a short-lived realtime client secret from the backend, then a realtime voice agent reads compact screen context and calls typed UI actions such as opening a product, creating a campaign, setting offer terms, and generating additional images. Long-running actions reuse the app's normal loading and error dialogs, and voice-driven campaign draft updates share the same state as the visible form.
 
-### V2: Codex App Skill
+### Codex App Skill
 
-V2 makes the workflow available from Codex App without asking reviewers to configure MCP. Codex App can use the repo skill to login to the local app and call the same HTTP APIs the UI uses.
+The Codex App skill makes the workflow available from Codex App without asking reviewers to configure MCP. Codex App can use the repo skill to login to the local app and call the same HTTP APIs the UI uses.
 
 ## Local-First Shape
 
@@ -60,7 +60,7 @@ Demo UI
         -> read-only product/sales context
     -> OpenAI image generation
 
-Codex App V2
+Codex App skill
   -> repo skill
   -> local app HTTP API
   -> Backend API
@@ -82,14 +82,16 @@ Recommended stack:
 - seeded-only email/password login;
 - Codex SDK for the agent loop;
 - a tiny read-only MCP server for backend Codex product context;
-- OpenAI image generation for campaign images.
-- OpenAI Realtime for optional voice control in V1.
+- OpenAI image generation for campaign images;
+- OpenAI Realtime for optional voice control.
+
+For review clarity, the sample keeps model choices fixed in code: `gpt-5.5` for the backend Codex SDK agent, `gpt-image-2` for images, and `gpt-realtime-2` for voice.
 
 ## Frontend Shape
 
 The UI should be simple and demo-focused. Use shadcn/ui and Tailwind CSS instead of hand-rolling components.
 
-V0 screens:
+Core screens:
 
 1. Login.
 2. Products dashboard with product metrics, product sales table, promotion suggestions, row-level AI recommendation popups, and single-product selection.
@@ -119,10 +121,10 @@ There are two auth concerns:
 2. **Demo app authentication**
    - protects the app workflow;
    - uses a seeded-only email/password login;
-   - does not include signup, invite, password reset, or user creation flows in V0;
+   - does not include signup, invite, password reset, or user creation flows in this demo;
    - should be enough to show authenticated state without building enterprise auth.
 
-Recommended V0 setup:
+Recommended demo setup:
 
 ```text
 App auth:
@@ -138,7 +140,7 @@ Realtime voice auth:
   OPENAI_API_KEY on the backend
 ```
 
-The UI can show runtime status such as `Codex runtime: Connected`, `Image API: Connected`, or `Voice: Ready`, but it should not ask the user to complete a second OpenAI login during the demo.
+The UI can show runtime status such as `Codex runtime: Configured`, `Image API: Configured`, or `Voice: Ready`, but it should not ask the user to complete a second OpenAI login during the demo.
 
 ## Responsibility Split
 
@@ -152,7 +154,7 @@ Backend Codex SDK owns:
 
 Backend Codex SDK uses only read-only MCP tools. It returns structured suggestions and campaign content for the backend to validate and persist.
 
-Codex App V2 owns:
+Codex App skill owns:
 
 - acting as the agent when the user works directly from Codex App;
 - using the repo skill as workflow guidance;
@@ -178,7 +180,7 @@ The backend owns:
 - response validation;
 - UI-facing API responses.
 
-Codex should not write directly to the app database. Backend Codex SDK calls only read-only MCP tools. Codex App V2 calls authenticated app HTTP APIs, so normal backend validation and Prisma persistence remain the boundary.
+Codex should not write directly to the app database. Backend Codex SDK calls only read-only MCP tools. Codex App skill calls authenticated app HTTP APIs, so normal backend validation and Prisma persistence remain the boundary.
 
 ## Documentation
 

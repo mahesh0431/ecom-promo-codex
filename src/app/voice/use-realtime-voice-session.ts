@@ -67,9 +67,9 @@ export function useRealtimeVoiceSession(commands: PromoWorkflowCommands) {
       const [{ RealtimeAgent, RealtimeSession, tool }, token] =
         await Promise.all([import("@openai/agents/realtime"), fetchToken()]);
       const agent = new RealtimeAgent({
-        name: "Promo Campaign Studio Voice",
+        name: "eCommerce Promotion Cockpit Voice",
         instructions: [
-          "You control the Promo Campaign Studio UI through tools.",
+          "You control the eCommerce Promotion Cockpit UI through tools.",
           "Always inspect screen context before choosing a product, campaign, or dialog action.",
           "Do not guess product IDs. Prefer exact product names or SKUs. If a product reference is ambiguous, ask a short clarifying question.",
           "Use concise spoken responses. Tell the user what changed in the UI.",

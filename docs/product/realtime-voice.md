@@ -1,6 +1,6 @@
 # Realtime Voice Control
 
-Realtime voice is a V1 layer over the existing promo workflow.
+Realtime voice is an optional layer over the existing promo workflow.
 
 The voice agent controls the browser UI through a small set of typed app actions. It does not scrape the DOM, use computer control, or call backend business APIs directly. The same React workflow handlers used by buttons also power voice actions, so mouse and voice behavior stay aligned.
 

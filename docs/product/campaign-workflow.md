@@ -111,7 +111,7 @@ The campaign detail state shows:
 
 The campaign detail page can also generate another image variant. That action opens a small popup for optional custom image direction, then blocks while the image is being generated.
 
-## V1 Voice Control
+## Voice Control
 
 Voice control is an optional way to drive the same workflow. It can open products, generate suggestions, open recommendation popups, create campaigns, set campaign fields, and generate campaign creative. It should not introduce a separate chat flow or bypass the existing buttons, loading states, error handling, or backend validation.
 
@@ -134,4 +134,4 @@ Product and sales data
 
 ## Demo Consideration
 
-Dashboard and campaign-history sorting happens in the browser over the loaded seeded rows. V0 keeps this client-side because the demo dataset is intentionally small; server-side sorting, filtering, and pagination are outside the current scope.
+Dashboard and campaign-history sorting happens in the browser over the loaded seeded rows. The demo keeps this client-side because the dataset is intentionally small; server-side sorting, filtering, and pagination are outside the current scope.

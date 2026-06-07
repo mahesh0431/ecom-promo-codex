@@ -1,6 +1,6 @@
 # Codex App Skill
 
-V2 adds a repo skill so Codex App can work with the promo campaign workflow through the local app HTTP APIs.
+The repo skill lets Codex App work with the promo campaign workflow through the local app HTTP APIs.
 
 The skill lives at:
 
@@ -12,7 +12,7 @@ Codex App should use this skill when the user asks to inspect products, recommen
 
 ## How It Works
 
-The skill does not require reviewer MCP setup. It uses the running app at `http://localhost:3000`, logs in with the seeded demo account, reads app data APIs, and saves Codex App-authored campaign output through the app API.
+The skill uses the running app at `http://localhost:3000`, logs in with the seeded demo account, reads app data APIs, and saves Codex App-authored campaign output through the app API.
 
 The important boundary: Codex App is the agent in this workflow. The skill should not call the app endpoints that start the backend Codex SDK agent.
 

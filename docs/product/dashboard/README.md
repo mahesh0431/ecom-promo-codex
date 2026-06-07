@@ -4,6 +4,7 @@ These images are visual references only. They are not implementation plans.
 
 ## Current References
 
+- `ecommerce-promotion-cockpit-dashboard.png` is the current live app dashboard screenshot used in the README.
 - `products-dashboard-clean.png` is the accepted first-page dashboard: page body, top metrics, product sales table, promotion suggestion button, and disabled create action.
 - `products-dashboard-codex-popup.png` is the accepted first-page popup state after generating promotion suggestions. The implemented dashboard now also exposes each suggestion through a row-level `View recommendation` popup.
 - `product-detail-campaign-history.png` is the accepted product detail and campaign history direction.

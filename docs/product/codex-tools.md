@@ -24,7 +24,7 @@ Codex runs use the backend `OPENAI_API_KEY`. The backend passes that value throu
 
 Codex SDK runs default to `gpt-5.5`, low reasoning, disabled web search, an app-owned Codex home at `output/codex-runtime/home`, and an app-owned working directory at `output/codex-runtime/workspace`. Codex may create its own state, system skills, and plugin marketplace cache inside that home; those generated files stay under ignored `output/` instead of `data/` or a developer's personal Codex profile.
 
-Each promotion suggestion or campaign generation request starts a fresh Codex thread for that job while reusing the same app-owned home and workspace. V0 avoids one long-lived app-wide thread so independent jobs do not leak context into each other.
+Each promotion suggestion or campaign generation request starts a fresh Codex thread for that job while reusing the same app-owned home and workspace. The demo avoids one long-lived app-wide thread so independent jobs do not leak context into each other.
 
 Codex cannot:
 
@@ -129,14 +129,14 @@ The backend saves this as a campaign. The saved `imagePrompt` is used for the in
 
 ## Codex App Skill Path
 
-MCP stays read-only for the backend Codex SDK path. The reviewer-facing Codex App workflow uses the repo skill at `.agents/skills/promo-campaign-studio` and calls the app HTTP APIs directly. This avoids requiring manual MCP setup just to try the skill.
+MCP stays read-only for the backend Codex SDK path. The reviewer-facing Codex App workflow uses the repo skill at `.agents/skills/promo-campaign-studio` and calls the app HTTP APIs directly.
 
 For the Codex App skill, Codex App is the agent. It should read product APIs, decide recommendations from returned product facts, write the campaign caption/image prompt/reasoning itself, and create the saved campaign through `POST /api/campaigns`.
 
 The skill should not call `POST /api/campaign-opportunities` or `POST /api/campaigns/generate`; those routes exist for the in-app UI path where the backend Codex SDK agent is intentionally being demonstrated.
 
-## Why No Raw SQL Tool In V0
+## Why No Raw SQL Tool In The Demo
 
 Raw SQL is flexible, but it adds validation and safety work that the demo does not need. The MCP server should expose small business-level tools instead of a generic SQL runner. This keeps the demo easier to evaluate and makes the safety boundary easier to explain.
 
-Raw SQL can be reconsidered later if the demo grows, but it is outside V0.
+Raw SQL can be reconsidered later if the demo grows, but it is outside the current scope.
