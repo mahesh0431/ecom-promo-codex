@@ -111,6 +111,12 @@ The campaign detail state shows:
 
 The campaign detail page can also generate another image variant. That action opens a small popup for optional custom image direction, then blocks while the image is being generated.
 
+## V1 Voice Control
+
+Voice control is an optional way to drive the same workflow. It can open products, generate suggestions, open recommendation popups, create campaigns, set campaign fields, and generate campaign creative. It should not introduce a separate chat flow or bypass the existing buttons, loading states, error handling, or backend validation.
+
+The voice control UI stays compact: idle is only a mic button, and active mode expands just enough to show listening/running state plus a stop control. When voice changes campaign fields and then immediately generates, generation must use the latest visible draft values.
+
 ## Workflow Story
 
 ```text

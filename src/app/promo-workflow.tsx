@@ -13,16 +13,18 @@ import {
   ImageIcon,
   LoaderCircle,
   LogOut,
+  Mic,
   Package,
   Plus,
   RefreshCcw,
+  Square,
   Sparkles,
   Tag,
   TrendingUp,
   Wand2,
   X
 } from "lucide-react";
-import { FormEvent, useCallback, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useRef, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -64,6 +66,21 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { applyCampaignDraftPatch } from "@/app/voice/campaign-draft-state";
+import { buildVoiceScreenContext } from "@/app/voice/screen-context";
+import { resolveProductReference } from "@/app/voice/product-resolution";
+import {
+  formatProductResolutionFailure,
+  voiceFailure,
+  voiceSuccess
+} from "@/app/voice/voice-actions";
+import { useRealtimeVoiceSession } from "@/app/voice/use-realtime-voice-session";
+import type { PromoWorkflowCommands } from "@/app/voice/workflow-command-types";
+import type {
+  VoiceActiveDialog,
+  VoiceCampaignDraft,
+  VoiceCommandResult
+} from "@/app/voice/voice-types";
 import type {
   CampaignDto,
   CampaignSummaryDto,
@@ -160,6 +177,18 @@ type GenerateCampaignInput = {
   optionalInstructions?: string;
 };
 
+type CampaignGenerationState = {
+  loading: boolean;
+  error: string | null;
+};
+
+type AdditionalImageState = {
+  open: boolean;
+  loading: boolean;
+  error: string | null;
+  instructions: string;
+};
+
 const aspectRatioOptions: AspectRatioOption[] = [
   "Square",
   "Portrait",
@@ -189,6 +218,23 @@ export default function PromoWorkflow({
     null
   );
   const [opportunities, setOpportunities] = useState<OpportunityDto[]>([]);
+  const [openRecommendationProductId, setOpenRecommendationProductId] =
+    useState<string | null>(null);
+  const [campaignDraft, setCampaignDraft] =
+    useState<VoiceCampaignDraft>(createEmptyCampaignDraft());
+  const campaignDraftRef = useRef(campaignDraft);
+  const [campaignGenerationState, setCampaignGenerationState] =
+    useState<CampaignGenerationState>({
+      loading: false,
+      error: null
+    });
+  const [additionalImageState, setAdditionalImageState] =
+    useState<AdditionalImageState>({
+      open: false,
+      loading: false,
+      error: null,
+      instructions: ""
+    });
   const [productSortState, setProductSortState] = useState<ProductSortState>({
     key: "name",
     direction: "asc"
@@ -218,6 +264,17 @@ export default function PromoWorkflow({
   const selectedProduct = selectedProductId
     ? productsById.get(selectedProductId) ?? null
     : null;
+
+  function replaceCampaignDraft(nextDraft: VoiceCampaignDraft) {
+    campaignDraftRef.current = nextDraft;
+    setCampaignDraft(nextDraft);
+  }
+
+  function updateCampaignDraft(patch: Partial<VoiceCampaignDraft>) {
+    const nextDraft = applyCampaignDraftPatch(campaignDraftRef.current, patch);
+    replaceCampaignDraft(nextDraft);
+    return nextDraft;
+  }
   const opportunitiesByProductId = useMemo(
     () =>
       new Map(
@@ -228,6 +285,12 @@ export default function PromoWorkflow({
       ),
     [opportunities]
   );
+  const openRecommendationProduct = openRecommendationProductId
+    ? products.find((product) => product.productId === openRecommendationProductId) ?? null
+    : null;
+  const openRecommendation = openRecommendationProductId
+    ? opportunitiesByProductId.get(openRecommendationProductId) ?? null
+    : null;
 
   const refreshProducts = useCallback(async () => {
     setLoadingProducts(true);
@@ -316,7 +379,16 @@ export default function PromoWorkflow({
       setView({ kind: "dashboard" });
       setSelectedProductId(null);
       setOpportunities([]);
+      setOpenRecommendationProductId(null);
       setSuggestionsDialogOpen(false);
+      replaceCampaignDraft(createEmptyCampaignDraft());
+      setCampaignGenerationState({ loading: false, error: null });
+      setAdditionalImageState({
+        open: false,
+        loading: false,
+        error: null,
+        instructions: ""
+      });
       setProductSortState({ key: "name", direction: "asc" });
       setCampaignsByProduct({});
       setCampaignDetailsById({});
@@ -356,6 +428,9 @@ export default function PromoWorkflow({
   function openProduct(productId: string) {
     setView({ kind: "product", productId });
     setSelectedProductId(productId);
+    setOpenRecommendationProductId(null);
+    setSuggestionsDialogOpen(false);
+    setAdditionalImageState((current) => ({ ...current, open: false }));
     void loadCampaignHistory(productId).catch((error) => {
       setAppError(toErrorMessage(error));
     });
@@ -367,11 +442,30 @@ export default function PromoWorkflow({
   ) {
     setView({ kind: "campaign", productId, suggestedOffer });
     setSelectedProductId(productId);
+    setOpenRecommendationProductId(null);
+    setSuggestionsDialogOpen(false);
+    replaceCampaignDraft(createCampaignDraft(suggestedOffer));
+    setCampaignGenerationState({ loading: false, error: null });
+    setAdditionalImageState({
+      open: false,
+      loading: false,
+      error: null,
+      instructions: ""
+    });
   }
 
   function openExistingCampaign(productId: string, campaignId: string) {
     setView({ kind: "campaign", productId, campaignId });
     setSelectedProductId(productId);
+    setOpenRecommendationProductId(null);
+    setSuggestionsDialogOpen(false);
+    setCampaignGenerationState({ loading: false, error: null });
+    setAdditionalImageState({
+      open: false,
+      loading: false,
+      error: null,
+      instructions: ""
+    });
 
     if (!campaignDetailsById[campaignId]) {
       void loadCampaignDetail(campaignId).catch((error) => {
@@ -436,6 +530,392 @@ export default function PromoWorkflow({
     }
   }
 
+  const currentProduct =
+    view.kind === "product" || view.kind === "campaign"
+      ? productsById.get(view.productId) ?? null
+      : null;
+  const currentCampaignDetail =
+    view.kind === "campaign" && view.campaignId
+      ? campaignDetailsById[view.campaignId] ?? null
+      : null;
+  const currentCampaigns = useMemo(
+    () =>
+      currentProduct
+        ? campaignsByProduct[currentProduct.productId] ?? []
+        : [],
+    [campaignsByProduct, currentProduct]
+  );
+
+  async function submitCampaignDraft(): Promise<VoiceCommandResult> {
+    if (view.kind !== "campaign" || !currentProduct || currentCampaignDetail) {
+      const message = "Open a campaign create screen before generating.";
+      setAppError(message);
+      return voiceFailure(message, voiceContext);
+    }
+
+    const draftForGeneration = campaignDraftRef.current;
+    const validationError = validateCampaignDraft(
+      draftForGeneration,
+      currentProduct
+    );
+
+    if (validationError) {
+      setAppError(validationError);
+      return voiceFailure(validationError, voiceContext);
+    }
+
+    setCampaignGenerationState({ loading: true, error: null });
+    try {
+      await generateCampaign({
+        productId: currentProduct.productId,
+        discountPercent: draftForGeneration.discountPercent,
+        quantityLimit: draftForGeneration.quantityLimit,
+        imageVariants: draftForGeneration.imageVariants,
+        optionalInstructions: buildOptionalInstructions({
+          aspectRatio: draftForGeneration.aspectRatio,
+          customImagePrompt: draftForGeneration.customImagePrompt
+        })
+      });
+    } catch (error) {
+      setCampaignGenerationState({
+        loading: false,
+        error: toErrorMessage(error)
+      });
+      return voiceFailure(toErrorMessage(error), voiceContext);
+    }
+
+    setCampaignGenerationState({ loading: false, error: null });
+    return voiceSuccess("Campaign created.", voiceContext);
+  }
+
+  function openAdditionalImageDialog() {
+    if (!currentCampaignDetail) {
+      setAppError("Open an existing campaign before generating another image.");
+      return;
+    }
+
+    setAdditionalImageState({
+      open: true,
+      loading: false,
+      error: null,
+      instructions: ""
+    });
+  }
+
+  async function submitAdditionalImage(
+    customDirection?: string
+  ): Promise<VoiceCommandResult> {
+    if (!currentCampaignDetail) {
+      const message = "Open an existing campaign before generating another image.";
+      setAppError(message);
+      return voiceFailure(message, voiceContext);
+    }
+
+    const instructions =
+      customDirection ?? additionalImageState.instructions;
+
+    setAdditionalImageState((current) => ({
+      ...current,
+      open: true,
+      loading: true,
+      error: null,
+      instructions
+    }));
+
+    try {
+      await generateAdditionalImage(
+        currentCampaignDetail.campaign.campaignId,
+        instructions
+      );
+    } catch (error) {
+      setAdditionalImageState((current) => ({
+        ...current,
+        loading: false,
+        error: toErrorMessage(error)
+      }));
+      return voiceFailure(toErrorMessage(error), voiceContext);
+    }
+
+    setAdditionalImageState({
+      open: false,
+      loading: false,
+      error: null,
+      instructions: ""
+    });
+    return voiceSuccess("Image generated.", voiceContext);
+  }
+
+  const voiceContext = useMemo(
+    () =>
+      buildVoiceScreenContext({
+        page: view.kind,
+        products,
+        selectedProductId,
+        opportunities,
+        currentProductId: currentProduct?.productId ?? null,
+        campaigns: currentCampaigns,
+        currentCampaignDetail,
+        campaignDraft: view.kind === "campaign" ? campaignDraft : null,
+        activeDialog: getActiveVoiceDialog({
+          suggestionsDialogOpen,
+          openRecommendationProductId,
+          campaignGenerationState,
+          additionalImageState
+        }),
+        loading: {
+          products: loadingProducts,
+          suggestions: loadingSuggestions,
+          historyProductId: loadingHistoryProductId,
+          campaignId: loadingCampaignId,
+          campaignGeneration: campaignGenerationState.loading,
+          imageGeneration: additionalImageState.loading
+        }
+      }),
+    [
+      additionalImageState,
+      campaignDraft,
+      campaignGenerationState,
+      currentCampaignDetail,
+      currentCampaigns,
+      currentProduct,
+      loadingCampaignId,
+      loadingHistoryProductId,
+      loadingProducts,
+      loadingSuggestions,
+      openRecommendationProductId,
+      opportunities,
+      products,
+      selectedProductId,
+      suggestionsDialogOpen,
+      view.kind
+    ]
+  );
+
+  const closeActiveDialogForVoice = useCallback((): VoiceCommandResult => {
+    const activeDialog = getActiveVoiceDialog({
+      suggestionsDialogOpen,
+      openRecommendationProductId,
+      campaignGenerationState,
+      additionalImageState
+    });
+
+    if (activeDialog === "campaign_generation" || additionalImageState.loading) {
+      return voiceFailure(
+        "A generation action is running, so the dialog cannot be closed yet.",
+        voiceContext
+      );
+    }
+
+    if (suggestionsDialogOpen) {
+      setSuggestionsDialogOpen(false);
+    }
+    if (openRecommendationProductId) {
+      setOpenRecommendationProductId(null);
+    }
+    if (additionalImageState.open) {
+      setAdditionalImageState((current) => ({
+        ...current,
+        open: false,
+        loading: false,
+        error: null,
+        instructions: ""
+      }));
+    }
+    if (campaignGenerationState.error) {
+      setCampaignGenerationState({ loading: false, error: null });
+    }
+
+    return activeDialog === "none"
+      ? voiceFailure("There is no dialog open.", voiceContext)
+      : voiceSuccess("Closed the dialog.", voiceContext);
+  }, [
+    additionalImageState,
+    campaignGenerationState,
+    openRecommendationProductId,
+      suggestionsDialogOpen,
+      voiceContext
+    ]);
+
+  function getLatestVoiceContext() {
+    return view.kind === "campaign"
+      ? {
+          ...voiceContext,
+          campaignDraft: campaignDraftRef.current
+        }
+      : voiceContext;
+  }
+
+  const voiceCommands: PromoWorkflowCommands = {
+      getContext: getLatestVoiceContext,
+      openProduct: async (reference) => {
+        const resolution = resolveProductReference(
+          voiceContext.products,
+          reference
+        );
+
+        if (resolution.kind !== "matched") {
+          return voiceFailure(
+            formatProductResolutionFailure(reference, voiceContext.products),
+            voiceContext
+          );
+        }
+
+        openProduct(resolution.product.productId);
+
+        return voiceSuccess(
+          `Opened ${resolution.product.name}.`,
+          voiceContext
+        );
+      },
+      navigateBack: async () => {
+        if (getActiveVoiceDialog({
+          suggestionsDialogOpen,
+          openRecommendationProductId,
+          campaignGenerationState,
+          additionalImageState
+        }) !== "none") {
+          return closeActiveDialogForVoice();
+        }
+
+        if (view.kind === "campaign" && currentProduct) {
+          setView({ kind: "product", productId: currentProduct.productId });
+          void loadCampaignHistory(currentProduct.productId).catch((error) =>
+            setAppError(toErrorMessage(error))
+          );
+          return voiceSuccess("Returned to product details.", voiceContext);
+        }
+
+        if (view.kind === "product") {
+          setView({ kind: "dashboard" });
+          return voiceSuccess("Returned to products.", voiceContext);
+        }
+
+        return voiceFailure("You are already on the products dashboard.", voiceContext);
+      },
+      generatePromotionSuggestions: async () => {
+        await handleAskCodex();
+        return voiceSuccess("Promotion suggestions are ready.", voiceContext);
+      },
+      openRecommendation: async (reference) => {
+        if (!opportunities.length) {
+          return voiceFailure(
+            "Generate promotion suggestions before opening a recommendation.",
+            voiceContext
+          );
+        }
+
+        const resolution = resolveProductReference(
+          voiceContext.products,
+          reference
+        );
+
+        if (resolution.kind !== "matched") {
+          return voiceFailure(
+            formatProductResolutionFailure(reference, voiceContext.products),
+            voiceContext
+          );
+        }
+
+        if (!opportunitiesByProductId.has(resolution.product.productId)) {
+          return voiceFailure(
+            `${resolution.product.name} is not currently recommended.`,
+            voiceContext
+          );
+        }
+
+        setSuggestionsDialogOpen(false);
+        setOpenRecommendationProductId(resolution.product.productId);
+        return voiceSuccess(
+          `Opened the recommendation for ${resolution.product.name}.`,
+          voiceContext
+        );
+      },
+      createCampaignForProduct: async (reference) => {
+        const productReference =
+          reference ??
+          openRecommendationProduct?.name ??
+          currentProduct?.name ??
+          selectedProduct?.name;
+
+        if (!productReference) {
+          return voiceFailure(
+            "Select or name a product before creating a campaign.",
+            voiceContext
+          );
+        }
+
+        const resolution = resolveProductReference(
+          voiceContext.products,
+          productReference
+        );
+
+        if (resolution.kind !== "matched") {
+          return voiceFailure(
+            formatProductResolutionFailure(productReference, voiceContext.products),
+            voiceContext
+          );
+        }
+
+        const opportunity = opportunitiesByProductId.get(
+          resolution.product.productId
+        );
+        openCampaignCreate(
+          resolution.product.productId,
+          opportunity
+            ? {
+                discountPercent: opportunity.recommendedDiscountPercent,
+                quantityLimit: opportunity.recommendedQuantityLimit
+              }
+            : undefined
+        );
+
+        return voiceSuccess(
+          `Opened campaign setup for ${resolution.product.name}.`,
+          voiceContext
+        );
+      },
+      setCampaignOffer: async (draft) => {
+        if (view.kind !== "campaign" || currentCampaignDetail) {
+          return voiceFailure(
+            "Open a campaign create screen before setting offer terms.",
+            voiceContext
+          );
+        }
+
+        const nextDraft = updateCampaignDraft(draft);
+        return voiceSuccess("Updated the campaign offer.", {
+          ...voiceContext,
+          campaignDraft: nextDraft
+        });
+      },
+      generateCampaign: async () => {
+        return submitCampaignDraft();
+      },
+      openAdditionalImageDialog: async () => {
+        if (!currentCampaignDetail) {
+          return voiceFailure(
+            "Open a generated campaign before creating another image.",
+            voiceContext
+          );
+        }
+
+        openAdditionalImageDialog();
+        return voiceSuccess("Opened image direction dialog.", voiceContext);
+      },
+      generateAnotherImage: async (customDirection) => {
+        if (!currentCampaignDetail) {
+          return voiceFailure(
+            "Open a generated campaign before creating another image.",
+            voiceContext
+          );
+        }
+
+        return submitAdditionalImage(customDirection);
+      },
+      closeDialog: async () => closeActiveDialogForVoice()
+    };
+  const voiceSession = useRealtimeVoiceSession(voiceCommands);
+
   if (authState === "checking") {
     return (
       <main className="grid min-h-screen place-items-center px-6">
@@ -456,15 +936,6 @@ export default function PromoWorkflow({
       />
     );
   }
-
-  const currentProduct =
-    view.kind === "product" || view.kind === "campaign"
-      ? productsById.get(view.productId) ?? null
-      : null;
-  const currentCampaignDetail =
-    view.kind === "campaign" && view.campaignId
-      ? campaignDetailsById[view.campaignId] ?? null
-      : null;
 
   return (
     <main className="min-h-screen text-slate-950">
@@ -495,10 +966,13 @@ export default function PromoWorkflow({
             overview={overview}
             products={products}
             selectedProductId={selectedProductId}
+            openRecommendationProductId={openRecommendationProductId}
             opportunitiesByProductId={opportunitiesByProductId}
             sortState={productSortState}
             loadingSuggestions={loadingSuggestions}
             onSelectProduct={setSelectedProductId}
+            onOpenRecommendation={setOpenRecommendationProductId}
+            onCloseRecommendation={() => setOpenRecommendationProductId(null)}
             onSortStateChange={setProductSortState}
             onOpenProduct={openProduct}
             onAskCodex={() => void handleAskCodex()}
@@ -530,19 +1004,44 @@ export default function PromoWorkflow({
           <CampaignWorkspace
             key={`${currentProduct.productId}:${view.campaignId ?? "new"}:${view.suggestedOffer?.discountPercent ?? 0}:${view.suggestedOffer?.quantityLimit ?? 0}`}
             product={currentProduct}
-            suggestedOffer={view.suggestedOffer}
             campaignDetail={currentCampaignDetail}
             loadingCampaign={
               view.campaignId ? loadingCampaignId === view.campaignId : false
             }
+            draft={campaignDraft}
+            generationState={campaignGenerationState}
+            additionalImageState={additionalImageState}
             onBack={() => {
               setView({ kind: "product", productId: currentProduct.productId });
               void loadCampaignHistory(currentProduct.productId).catch(
                 (error) => setAppError(toErrorMessage(error))
               );
             }}
-            onGenerate={generateCampaign}
-            onGenerateAnotherImage={generateAdditionalImage}
+            onDraftChange={(draft) =>
+              updateCampaignDraft(draft)
+            }
+            onGenerate={() => void submitCampaignDraft()}
+            onClearGenerationError={() =>
+              setCampaignGenerationState({ loading: false, error: null })
+            }
+            onOpenAdditionalImageDialog={openAdditionalImageDialog}
+            onAdditionalImageInstructionsChange={(instructions) =>
+              setAdditionalImageState((current) => ({
+                ...current,
+                instructions
+              }))
+            }
+            onGenerateAnotherImage={() => void submitAdditionalImage()}
+            onCloseAdditionalImageDialog={() => {
+              if (!additionalImageState.loading) {
+                setAdditionalImageState({
+                  open: false,
+                  loading: false,
+                  error: null,
+                  instructions: ""
+                });
+              }
+            }}
             onError={(message) => setAppError(message)}
           />
         ) : null}
@@ -572,6 +1071,7 @@ export default function PromoWorkflow({
       <span className="sr-only">
         Signed in as {user?.email ?? "demo user"}
       </span>
+      <VoiceModePanel session={voiceSession} />
     </main>
   );
 }
@@ -639,6 +1139,106 @@ function AppHeader({
       </div>
     </header>
   );
+}
+
+function VoiceModePanel({
+  session
+}: {
+  session: ReturnType<typeof useRealtimeVoiceSession>;
+}) {
+  const active = session.connected || session.status === "connecting";
+  const expanded = active || session.status === "error";
+  const busy =
+    session.status === "connecting" ||
+    session.status === "thinking" ||
+    session.status === "executing";
+  const voiceActive =
+    session.status === "listening" || session.status === "speaking";
+  const statusLabel = getVoiceStatusLabel(session.status);
+  const statusTone =
+    session.status === "error"
+      ? "bg-red-500"
+      : busy
+        ? "bg-blue-500"
+        : "bg-green-500";
+
+  if (!expanded) {
+    return (
+      <aside className="fixed bottom-5 right-5">
+        <Button
+          type="button"
+          size="icon-lg"
+          variant="default"
+          className="rounded-full bg-blue-600 shadow-lg hover:bg-blue-700"
+          onClick={() => void session.start()}
+          aria-label="Start voice control"
+        >
+          <Mic />
+        </Button>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="fixed bottom-5 right-5">
+      <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-lg">
+        <span
+          className={cn(
+            "size-2 rounded-full",
+            statusTone,
+            voiceActive && "animate-pulse motion-reduce:animate-none"
+          )}
+        />
+        <span className="relative grid size-8 place-items-center rounded-full border border-slate-200 bg-white text-blue-600">
+          {voiceActive ? (
+            <span
+              className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping motion-reduce:animate-none"
+              aria-hidden
+            />
+          ) : null}
+          {busy ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Mic className="relative size-4" aria-hidden />
+          )}
+        </span>
+        <span className="text-sm font-semibold text-slate-950">
+          {statusLabel}
+        </span>
+        <Button
+          type="button"
+          size="icon-sm"
+          variant="outline"
+          className="rounded-full"
+          onClick={session.stop}
+          aria-label="Stop voice control"
+        >
+          <Square />
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
+function getVoiceStatusLabel(
+  status: ReturnType<typeof useRealtimeVoiceSession>["status"]
+) {
+  switch (status) {
+    case "connecting":
+      return "Starting";
+    case "listening":
+      return "Listening";
+    case "thinking":
+      return "Thinking";
+    case "speaking":
+      return "Speaking";
+    case "executing":
+      return "Running";
+    case "error":
+      return "Error";
+    default:
+      return "Listening";
+  }
 }
 
 function LoginScreen({
@@ -740,10 +1340,13 @@ function DashboardView({
   overview,
   products,
   selectedProductId,
+  openRecommendationProductId,
   opportunitiesByProductId,
   sortState,
   loadingSuggestions,
   onSelectProduct,
+  onOpenRecommendation,
+  onCloseRecommendation,
   onSortStateChange,
   onOpenProduct,
   onAskCodex,
@@ -754,10 +1357,13 @@ function DashboardView({
   overview: ProductOverview | null;
   products: ProductForCampaignReview[];
   selectedProductId: string | null;
+  openRecommendationProductId: string | null;
   opportunitiesByProductId: Map<string, OpportunityDto>;
   sortState: ProductSortState;
   loadingSuggestions: boolean;
   onSelectProduct: (productId: string | null) => void;
+  onOpenRecommendation: (productId: string) => void;
+  onCloseRecommendation: () => void;
   onSortStateChange: (sortState: ProductSortState) => void;
   onOpenProduct: (productId: string) => void;
   onAskCodex: () => void;
@@ -767,9 +1373,6 @@ function DashboardView({
   ) => void;
   onCreateCampaign: () => void;
 }) {
-  const [openRecommendationProductId, setOpenRecommendationProductId] =
-    useState<string | null>(null);
-
   const suggestionRankByProductId = useMemo(() => {
     const ranks = new Map<string, number>();
     let index = 0;
@@ -989,9 +1592,7 @@ function DashboardView({
                         variant="outline"
                         className="h-8 px-3 text-xs"
                         aria-haspopup="dialog"
-                        onClick={() =>
-                          setOpenRecommendationProductId(product.productId)
-                        }
+                        onClick={() => onOpenRecommendation(product.productId)}
                       >
                         <Sparkles className="size-3.5" />
                         View recommendation
@@ -1025,13 +1626,13 @@ function DashboardView({
           product={openRecommendationProduct}
           opportunity={openRecommendation}
           onCreateCampaign={() => {
-            setOpenRecommendationProductId(null);
+            onCloseRecommendation();
             onCreateCampaignForProduct(openRecommendationProduct.productId, {
               discountPercent: openRecommendation.recommendedDiscountPercent,
               quantityLimit: openRecommendation.recommendedQuantityLimit
             });
           }}
-          onClose={() => setOpenRecommendationProductId(null)}
+          onClose={onCloseRecommendation}
         />
       ) : null}
     </>
@@ -1444,71 +2045,63 @@ function ProductDetailView({
 
 function CampaignWorkspace({
   product,
-  suggestedOffer,
   campaignDetail,
   loadingCampaign,
+  draft,
+  generationState,
+  additionalImageState,
   onBack,
+  onDraftChange,
   onGenerate,
+  onClearGenerationError,
+  onOpenAdditionalImageDialog,
+  onAdditionalImageInstructionsChange,
   onGenerateAnotherImage,
+  onCloseAdditionalImageDialog,
   onError
 }: {
   product: ProductForCampaignReview;
-  suggestedOffer?: CampaignOfferDraft;
   campaignDetail: CampaignDetailDto | null;
   loadingCampaign: boolean;
+  draft: VoiceCampaignDraft;
+  generationState: CampaignGenerationState;
+  additionalImageState: AdditionalImageState;
   onBack: () => void;
-  onGenerate: (input: GenerateCampaignInput) => Promise<CampaignDetailDto>;
-  onGenerateAnotherImage: (
-    campaignId: string,
-    customInstructions?: string
-  ) => Promise<void>;
+  onDraftChange: (draft: Partial<VoiceCampaignDraft>) => void;
+  onGenerate: () => void;
+  onClearGenerationError: () => void;
+  onOpenAdditionalImageDialog: () => void;
+  onAdditionalImageInstructionsChange: (instructions: string) => void;
+  onGenerateAnotherImage: () => void;
+  onCloseAdditionalImageDialog: () => void;
   onError: (message: string) => void;
 }) {
-  const [discountPercent, setDiscountPercent] = useState(
-    suggestedOffer?.discountPercent ?? 0
-  );
-  const [quantityLimit, setQuantityLimit] = useState(
-    suggestedOffer?.quantityLimit ?? 0
-  );
-  const [imageVariants, setImageVariants] = useState(2);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatioOption>("Square");
-  const [customImagePrompt, setCustomImagePrompt] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [campaignGenerationError, setCampaignGenerationError] = useState<
-    string | null
-  >(null);
-  const [generatingImage, setGeneratingImage] = useState(false);
-  const [additionalImageDialogOpen, setAdditionalImageDialogOpen] =
-    useState(false);
-  const [additionalImageInstructions, setAdditionalImageInstructions] =
-    useState("");
-  const [additionalImageError, setAdditionalImageError] = useState<
-    string | null
-  >(null);
   const [previewImage, setPreviewImage] = useState<CampaignImageDto | null>(
     null
   );
 
   const readOnly = Boolean(campaignDetail) || loadingCampaign;
   const displayedDiscountPercent =
-    campaignDetail?.campaign.discountPercent ?? discountPercent;
+    campaignDetail?.campaign.discountPercent ?? draft.discountPercent;
   const displayedQuantityLimit =
-    campaignDetail?.campaign.quantityLimit ?? quantityLimit;
+    campaignDetail?.campaign.quantityLimit ?? draft.quantityLimit;
   const displayedImageVariants =
-    campaignDetail?.campaign.initialImageVariantsRequested ?? imageVariants;
+    campaignDetail?.campaign.initialImageVariantsRequested ??
+    draft.imageVariants;
   const displayedAspectRatio = campaignDetail
     ? extractAspectRatio(campaignDetail.campaign.optionalInstructions) ??
       "Square"
-    : aspectRatio;
+    : draft.aspectRatio;
   const displayedCustomImagePrompt = campaignDetail
     ? extractCustomImagePrompt(campaignDetail.campaign.optionalInstructions)
-    : customImagePrompt;
+    : draft.customImagePrompt;
   const validQuantity =
-    quantityLimit >= 1 && quantityLimit <= product.availableQuantity;
-  const validDiscount = discountPercent >= 1 && discountPercent <= 100;
-  const quantityExceedsStock = quantityLimit > product.availableQuantity;
+    draft.quantityLimit >= 1 && draft.quantityLimit <= product.availableQuantity;
+  const validDiscount =
+    draft.discountPercent >= 1 && draft.discountPercent <= 100;
+  const quantityExceedsStock = draft.quantityLimit > product.availableQuantity;
   const canGenerate =
-    !readOnly && validQuantity && validDiscount && imageVariants >= 1;
+    !readOnly && validQuantity && validDiscount && draft.imageVariants >= 1;
 
   async function handleGenerate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1518,51 +2111,7 @@ function CampaignWorkspace({
       return;
     }
 
-    setCampaignGenerationError(null);
-    setGenerating(true);
-    try {
-      await onGenerate({
-        productId: product.productId,
-        discountPercent,
-        quantityLimit,
-        imageVariants,
-        optionalInstructions: buildOptionalInstructions({
-          aspectRatio,
-          customImagePrompt
-        })
-      });
-    } catch (error) {
-      setCampaignGenerationError(toErrorMessage(error));
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  function openAdditionalImageDialog() {
-    setAdditionalImageError(null);
-    setAdditionalImageInstructions("");
-    setAdditionalImageDialogOpen(true);
-  }
-
-  async function handleGenerateAnotherImage() {
-    if (!campaignDetail) {
-      return;
-    }
-
-    setAdditionalImageError(null);
-    setGeneratingImage(true);
-    try {
-      await onGenerateAnotherImage(
-        campaignDetail.campaign.campaignId,
-        additionalImageInstructions
-      );
-      setAdditionalImageDialogOpen(false);
-      setAdditionalImageInstructions("");
-    } catch (error) {
-      setAdditionalImageError(toErrorMessage(error));
-    } finally {
-      setGeneratingImage(false);
-    }
+    onGenerate();
   }
 
   return (
@@ -1614,8 +2163,10 @@ function CampaignWorkspace({
             <div className="space-y-4">
               <DiscountSlider
                 value={displayedDiscountPercent}
-                disabled={readOnly || generating}
-                onChange={setDiscountPercent}
+                disabled={readOnly || generationState.loading}
+                onChange={(discountPercent) =>
+                  onDraftChange({ discountPercent })
+                }
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 <NumberField
@@ -1624,8 +2175,8 @@ function CampaignWorkspace({
                   min={0}
                   max={product.availableQuantity}
                   value={displayedQuantityLimit}
-                  disabled={readOnly || generating}
-                  onChange={setQuantityLimit}
+                  disabled={readOnly || generationState.loading}
+                  onChange={(quantityLimit) => onDraftChange({ quantityLimit })}
                 />
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -1639,8 +2190,12 @@ function CampaignWorkspace({
                         className={segmentedButtonClass(
                           displayedImageVariants === variantCount
                         )}
-                        disabled={readOnly || generating}
-                        onClick={() => setImageVariants(variantCount)}
+                        disabled={readOnly || generationState.loading}
+                        onClick={() =>
+                          onDraftChange({
+                            imageVariants: variantCount as VoiceCampaignDraft["imageVariants"]
+                          })
+                        }
                       >
                         {variantCount}
                       </button>
@@ -1662,8 +2217,8 @@ function CampaignWorkspace({
                     className={segmentedButtonClass(
                       displayedAspectRatio === option
                     )}
-                    disabled={readOnly || generating}
-                    onClick={() => setAspectRatio(option)}
+                    disabled={readOnly || generationState.loading}
+                    onClick={() => onDraftChange({ aspectRatio: option })}
                   >
                     {option}
                   </button>
@@ -1680,9 +2235,11 @@ function CampaignWorkspace({
               className="min-h-[84px] resize-y"
               maxLength={500}
               value={displayedCustomImagePrompt}
-              disabled={readOnly || generating}
+              disabled={readOnly || generationState.loading}
               placeholder="Add a design direction for the campaign image..."
-              onChange={(event) => setCustomImagePrompt(event.target.value)}
+              onChange={(event) =>
+                onDraftChange({ customImagePrompt: event.target.value })
+              }
             />
             <span className="mt-1 block text-right text-xs text-slate-500">
               {displayedCustomImagePrompt.length} / 500
@@ -1694,14 +2251,14 @@ function CampaignWorkspace({
           <Button
             type="submit"
             className="h-10 bg-blue-600 px-6 hover:bg-blue-700"
-            disabled={!canGenerate || generating}
+            disabled={!canGenerate || generationState.loading}
           >
-            {generating ? (
+            {generationState.loading ? (
               <LoaderCircle className="size-4 animate-spin" />
             ) : (
               <Sparkles className="size-4" />
             )}
-            {generating ? "Generating campaign" : "Generate"}
+            {generationState.loading ? "Generating campaign" : "Generate"}
           </Button>
         </div>
 
@@ -1741,8 +2298,8 @@ function CampaignWorkspace({
                 <Button
                   type="button"
                   className="h-9 self-start bg-blue-600 hover:bg-blue-700 sm:self-auto"
-                  onClick={openAdditionalImageDialog}
-                  disabled={generatingImage}
+                  onClick={onOpenAdditionalImageDialog}
+                  disabled={additionalImageState.loading}
                 >
                   <RefreshCcw className="size-4" />
                   Generate image
@@ -1777,17 +2334,13 @@ function CampaignWorkspace({
             </div>
 
             <AdditionalImageDialog
-              open={additionalImageDialogOpen}
-              loading={generatingImage}
-              error={additionalImageError}
-              value={additionalImageInstructions}
-              onValueChange={setAdditionalImageInstructions}
-              onGenerate={() => void handleGenerateAnotherImage()}
-              onClose={() => {
-                if (!generatingImage) {
-                  setAdditionalImageDialogOpen(false);
-                }
-              }}
+              open={additionalImageState.open}
+              loading={additionalImageState.loading}
+              error={additionalImageState.error}
+              value={additionalImageState.instructions}
+              onValueChange={onAdditionalImageInstructionsChange}
+              onGenerate={onGenerateAnotherImage}
+              onClose={onCloseAdditionalImageDialog}
             />
 
             <Dialog
@@ -1824,19 +2377,15 @@ function CampaignWorkspace({
       </section>
 
       <WorkStatusDialog
-        open={generating || Boolean(campaignGenerationError)}
-        loading={generating}
+        open={generationState.loading || Boolean(generationState.error)}
+        loading={generationState.loading}
         title={
-          campaignGenerationError ? "Campaign was not created" : "Creating campaign"
+          generationState.error ? "Campaign was not created" : "Creating campaign"
         }
         description="Generating campaign copy and campaign creative."
         loadingLabel="Creating campaign"
-        error={campaignGenerationError}
-        onClose={() => {
-          if (!generating) {
-            setCampaignGenerationError(null);
-          }
-        }}
+        error={generationState.error}
+        onClose={onClearGenerationError}
       />
     </>
   );
@@ -2292,6 +2841,74 @@ function buildOptionalInstructions(input: {
   ].filter(Boolean);
 
   return parts.join("\n").slice(0, 1000);
+}
+
+function createEmptyCampaignDraft(): VoiceCampaignDraft {
+  return {
+    discountPercent: 0,
+    quantityLimit: 0,
+    imageVariants: 2,
+    aspectRatio: "Square",
+    customImagePrompt: ""
+  };
+}
+
+function createCampaignDraft(
+  suggestedOffer?: CampaignOfferDraft
+): VoiceCampaignDraft {
+  return {
+    ...createEmptyCampaignDraft(),
+    discountPercent: suggestedOffer?.discountPercent ?? 0,
+    quantityLimit: suggestedOffer?.quantityLimit ?? 0
+  };
+}
+
+function validateCampaignDraft(
+  draft: VoiceCampaignDraft,
+  product: ProductForCampaignReview
+) {
+  if (draft.discountPercent < 1 || draft.discountPercent > 100) {
+    return "Discount percent must be between 1 and 100.";
+  }
+
+  if (draft.quantityLimit < 1) {
+    return "Quantity limit must be at least 1 unit.";
+  }
+
+  if (draft.quantityLimit > product.availableQuantity) {
+    return "Quantity limit cannot exceed available stock.";
+  }
+
+  if (draft.imageVariants !== 1 && draft.imageVariants !== 2) {
+    return "Image variants must be 1 or 2.";
+  }
+
+  return null;
+}
+
+function getActiveVoiceDialog(input: {
+  suggestionsDialogOpen: boolean;
+  openRecommendationProductId: string | null;
+  campaignGenerationState: CampaignGenerationState;
+  additionalImageState: AdditionalImageState;
+}): VoiceActiveDialog {
+  if (input.campaignGenerationState.loading || input.campaignGenerationState.error) {
+    return "campaign_generation";
+  }
+
+  if (input.additionalImageState.open) {
+    return "additional_image";
+  }
+
+  if (input.openRecommendationProductId) {
+    return "recommendation";
+  }
+
+  if (input.suggestionsDialogOpen) {
+    return "promotion_suggestions";
+  }
+
+  return "none";
 }
 
 function extractAspectRatio(value: string | null) {

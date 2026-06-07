@@ -6,7 +6,7 @@ This guide covers local setup, demo login, runtime modes, and validation command
 
 - Node.js 20 or newer
 - pnpm 10 through Corepack
-- `OPENAI_API_KEY` for live Codex SDK runs and live image generation
+- `OPENAI_API_KEY` for live Codex SDK runs, live image generation, and realtime voice
 
 ## One-Time Setup
 
@@ -31,7 +31,7 @@ OPENAI_API_KEY="..."
 IMAGE_GENERATION_MODE="openai"
 ```
 
-The backend uses this same key for both Codex SDK runs and OpenAI image generation. The browser UI should never ask for an API key.
+The backend uses this same key for Codex SDK runs, OpenAI image generation, and realtime voice session secrets. The browser UI should never ask for an API key.
 
 Seeded login:
 
@@ -60,6 +60,8 @@ Expected first-run flow:
 4. Click `Create campaign`.
 5. Enter offer terms and click `Generate`.
 6. Review saved campaign details and generated images.
+
+For V1 voice control, start voice mode in the app after signing in and allow microphone access when your browser asks.
 
 ## Deterministic Local Mode
 

@@ -17,6 +17,7 @@ The point is to show Codex inside a real application workflow: authenticated UI,
 - A read-only MCP layer for product and sales context.
 - Codex SDK calls for promotion suggestions and campaign generation.
 - OpenAI image generation for campaign variants.
+- Optional realtime voice control for the same UI workflow.
 - A simple Next.js UI built with Tailwind CSS and shadcn-style components.
 
 ## The Demo Flow
@@ -30,13 +31,15 @@ The point is to show Codex inside a real application workflow: authenticated UI,
 7. Click `Generate`.
 8. Review the caption, image prompt, and campaign creative.
 
+V1 also lets a signed-in user start voice control and speak through the same workflow.
+
 ## Run It Locally
 
 Requirements:
 
 - Node.js 20+
 - pnpm 10+ through Corepack
-- one `OPENAI_API_KEY` for live Codex and image generation
+- one `OPENAI_API_KEY` for live Codex, image generation, and realtime voice
 
 ```bash
 corepack enable pnpm
@@ -71,6 +74,8 @@ Password: demo-password
 
 Live Codex and image generation use the single server-side `OPENAI_API_KEY` from `.env`. The app never asks for the key in the browser.
 
+Realtime voice also uses that backend key, but the browser receives only a short-lived realtime client secret.
+
 For deterministic fake mode, validation commands, and live smoke tests, see [Local Setup](docs/setup.md).
 
 ## Docs
@@ -83,6 +88,7 @@ For deterministic fake mode, validation commands, and live smoke tests, see [Loc
 - [Auth](docs/auth.md): seeded demo auth and session behavior.
 - [Codex MCP Contract](docs/codex-tools.md): how Codex gets safe product context.
 - [Image Generation](docs/image-generation.md): OpenAI image generation flow and storage.
+- [Realtime Voice Control](docs/realtime-voice.md): browser voice control for the same promo workflow.
 - [API Smoke Checks](docs/api-smoke.md): curl-based checks for backend routes.
 - [Dashboard References](docs/dashboard/README.md): accepted UI reference images.
 - [ExecPlan Guide](docs/PLANS.md): implementation planning format.

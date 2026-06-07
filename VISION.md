@@ -24,6 +24,7 @@ The product should feel like a focused workflow, not a generic chatbot. The user
 10. Codex generates campaign content and image prompts from the product context and offer terms.
 11. The backend generates the initial image variants, then saves and displays the campaign.
 12. The campaign detail page can generate additional image variants later.
+13. In V1, the user can start voice control and speak through the same workflow.
 
 ## Campaign Output
 
@@ -45,7 +46,7 @@ A local demo app that proves auth, persistence, Codex SDK usage, a small read-on
 
 **V1: Realtime Voice**
 
-Let users talk through campaign refinement and variant generation.
+Let users control the existing workflow by voice: open products, review recommendations, create campaigns, set offer terms, and generate campaign creative.
 
 **V2: Codex App Skill And MCP**
 

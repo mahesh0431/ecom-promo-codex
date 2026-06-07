@@ -39,6 +39,8 @@ V0 should stay focused on the demo flow and avoid unrelated platform features.
 
 V1 adds realtime voice so the user can talk through campaign refinement instead of only typing.
 
+Voice is browser UI control, not a second backend workflow. The browser receives a short-lived realtime client secret from the backend, then a realtime voice agent reads compact screen context and calls typed UI actions such as opening a product, creating a campaign, setting offer terms, and generating additional images. Long-running actions reuse the app's normal loading and error dialogs, and voice-driven campaign draft updates share the same state as the visible form.
+
 ### V2: Codex App Skill And MCP Integration
 
 V2 makes the workflow Codex-native. Codex App can use a repo skill plus MCP tools to work with the same promotion workflow, while the backend remains the system of record.
@@ -47,6 +49,7 @@ V2 makes the workflow Codex-native. Codex App can use a repo skill plus MCP tool
 
 ```text
 Demo UI
+  -> Realtime voice UI actions
   -> Backend API
     -> seeded demo auth
     -> Prisma
@@ -60,7 +63,7 @@ Demo UI
 
 The app can run locally. The local app owns the database, workspace, and UI. OpenAI services are still external and require credentials.
 
-Recommended V0 stack:
+Recommended stack:
 
 - Next.js with App Router;
 - Node.js and TypeScript;
@@ -70,6 +73,7 @@ Recommended V0 stack:
 - Codex SDK for the agent loop;
 - a tiny read-only MCP server for campaign/product context;
 - OpenAI image generation for campaign images.
+- OpenAI Realtime for optional voice control in V1.
 
 ## Frontend Shape
 
@@ -82,6 +86,7 @@ V0 screens:
 3. Product detail page with product context and existing campaigns for that product.
 4. Campaign create page for a selected product, including discount, quantity limit, initial image variant count, aspect ratio, optional custom image prompt, and a `Generate` action.
 5. Campaign detail page showing generated content, image prompt, saved images, and an action to generate additional image variants.
+6. Optional compact voice control for navigating the same workflow by speech.
 
 Product-row navigation and campaign creation are separate:
 
@@ -97,7 +102,7 @@ The app should feel like a small campaign tool, not a marketing landing page.
 There are two auth concerns:
 
 1. **OpenAI runtime authentication**
-   - required so the backend can run Codex SDK and image generation;
+   - required so the backend can run Codex SDK, image generation, and realtime voice session creation;
    - uses the server-side `OPENAI_API_KEY`;
    - should be checked during server startup, not requested through a second in-app popup.
 
@@ -118,9 +123,12 @@ Codex SDK auth:
 
 Image generation auth:
   OPENAI_API_KEY on the backend
+
+Realtime voice auth:
+  OPENAI_API_KEY on the backend
 ```
 
-The UI can show runtime status such as `Codex runtime: Connected` and `Image API: Connected`, but it should not ask the user to complete a second OpenAI login during the demo.
+The UI can show runtime status such as `Codex runtime: Connected`, `Image API: Connected`, or `Voice: Ready`, but it should not ask the user to complete a second OpenAI login during the demo.
 
 ## Responsibility Split
 
@@ -160,6 +168,7 @@ Codex should not write directly to the app database. It should call only read-on
 - [Data model](docs/data-model.md)
 - [Codex MCP contract](docs/codex-tools.md)
 - [Image generation](docs/image-generation.md)
+- [Realtime voice control](docs/realtime-voice.md)
 
 ## References
 
