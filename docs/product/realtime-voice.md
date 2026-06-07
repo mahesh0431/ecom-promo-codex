@@ -37,6 +37,7 @@ The voice layer can:
 - generate promotion suggestions;
 - open a product recommendation;
 - open campaign creation for a product;
+- open saved campaigns from a product's campaign history;
 - set discount, quantity, image variants, aspect ratio, and custom image prompt;
 - generate a campaign;
 - open the additional image dialog;

@@ -67,6 +67,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { applyCampaignDraftPatch } from "@/app/voice/campaign-draft-state";
+import {
+  formatCampaignResolutionFailure,
+  resolveCampaignReference
+} from "@/app/voice/campaign-resolution";
 import { buildVoiceScreenContext } from "@/app/voice/screen-context";
 import { resolveProductReference } from "@/app/voice/product-resolution";
 import {
@@ -331,6 +335,8 @@ export default function PromoWorkflow({
         ...current,
         [productId]: result.campaigns
       }));
+
+      return result.campaigns;
     } finally {
       setLoadingHistoryProductId((currentProductId) =>
         currentProductId === productId ? null : currentProductId
@@ -874,6 +880,61 @@ export default function PromoWorkflow({
           `Opened campaign setup for ${resolution.product.name}.`,
           voiceContext
         );
+      },
+      openCampaign: async (productReference, campaignReference) => {
+        const reference =
+          productReference ?? currentProduct?.name ?? selectedProduct?.name;
+
+        if (!reference) {
+          return voiceFailure(
+            "Open a product or name a product before opening a saved campaign.",
+            voiceContext
+          );
+        }
+
+        const productResolution = resolveProductReference(
+          voiceContext.products,
+          reference
+        );
+
+        if (productResolution.kind !== "matched") {
+          return voiceFailure(
+            formatProductResolutionFailure(reference, voiceContext.products),
+            voiceContext
+          );
+        }
+
+        let campaigns =
+          campaignsByProduct[productResolution.product.productId] ?? null;
+
+        if (!campaigns) {
+          try {
+            campaigns =
+              (await loadCampaignHistory(productResolution.product.productId)) ??
+              [];
+          } catch (error) {
+            return voiceFailure(toErrorMessage(error), voiceContext);
+          }
+        }
+
+        const campaignResolution = resolveCampaignReference(
+          campaigns,
+          campaignReference
+        );
+
+        if (campaignResolution.kind !== "matched") {
+          return voiceFailure(
+            formatCampaignResolutionFailure(campaignReference, campaigns),
+            voiceContext
+          );
+        }
+
+        openExistingCampaign(
+          productResolution.product.productId,
+          campaignResolution.campaign.campaignId
+        );
+
+        return voiceSuccess("Opened the saved campaign.", voiceContext);
       },
       setCampaignOffer: async (draft) => {
         if (view.kind !== "campaign" || currentCampaignDetail) {

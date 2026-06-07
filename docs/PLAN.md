@@ -200,7 +200,7 @@ Use this skeleton when creating a new ExecPlan.
 
     This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-    This plan follows `docs/exec-plans/README.md`.
+    This plan follows `docs/PLAN.md`.
 
     ## Purpose / Big Picture
 

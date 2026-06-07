@@ -144,6 +144,29 @@ export function useRealtimeVoiceSession(commands: PromoWorkflowCommands) {
               )
           }),
           tool({
+            name: "open_campaign",
+            description:
+              "Open an existing saved campaign from campaign history. Use this for viewing prior campaigns, not creating a new one.",
+            parameters: z.object({
+              product: z
+                .string()
+                .optional()
+                .describe(
+                  "Product name, SKU, or product ID. Omit to use the current product."
+                ),
+              campaign: z
+                .string()
+                .optional()
+                .describe(
+                  "Campaign reference such as latest, oldest, first campaign, discount percent, quantity limit, image count, or campaign ID."
+                )
+            }),
+            execute: async ({ product, campaign }) =>
+              toolResult(
+                await commandsRef.current.openCampaign(product, campaign)
+              )
+          }),
+          tool({
             name: "set_campaign_offer",
             description:
               "Set campaign draft fields on the campaign create screen.",

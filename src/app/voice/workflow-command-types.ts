@@ -28,6 +28,10 @@ export type PromoWorkflowCommands = {
   generatePromotionSuggestions: () => Promise<VoiceCommandResult>;
   openRecommendation: (reference: string) => Promise<VoiceCommandResult>;
   createCampaignForProduct: (reference?: string) => Promise<VoiceCommandResult>;
+  openCampaign: (
+    productReference?: string,
+    campaignReference?: string
+  ) => Promise<VoiceCommandResult>;
   setCampaignOffer: (
     draft: Partial<VoiceCampaignDraft>
   ) => Promise<VoiceCommandResult>;
