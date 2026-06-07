@@ -78,7 +78,7 @@ The UI should be simple and demo-focused. Use shadcn/ui and Tailwind CSS instead
 V0 screens:
 
 1. Login.
-2. Products dashboard with product metrics, product sales table, Codex suggestions, and single-product selection.
+2. Products dashboard with product metrics, product sales table, promotion suggestions, row-level AI recommendation popovers, and single-product selection.
 3. Product detail page with product context and existing campaigns for that product.
 4. Campaign create page for a selected product, including discount, quantity limit, initial image variant count, optional instructions, and a `Generate` action.
 5. Campaign detail page showing generated content, image prompt, saved images, and an action to generate additional image variants.
@@ -87,6 +87,7 @@ Product-row navigation and campaign creation are separate:
 
 - clicking a product opens the product detail and campaign history;
 - selecting one product and clicking `Create campaign` opens the campaign create page;
+- clicking `Create campaign` inside a row-level AI recommendation opens the campaign create page for that suggested product;
 - clicking an existing campaign opens the campaign detail page.
 
 The app should feel like a small campaign tool, not a marketing landing page.

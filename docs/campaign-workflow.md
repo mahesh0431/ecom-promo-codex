@@ -25,26 +25,32 @@ The product name opens the product detail page. Selecting a row chooses one prod
 Primary actions:
 
 ```text
-Ask Codex to suggest promotions
+Generate Promotion Suggestions
 Create campaign
 ```
 
 `Create campaign` is enabled only after one product is selected. It navigates to the campaign create page for that product. It does not generate a campaign on the products page.
 
-When the user clicks `Ask Codex to suggest promotions`:
+When the user clicks `Generate Promotion Suggestions`:
 
 1. Codex uses the small read-only MCP server to inspect product and sales context.
 2. Codex identifies the top products that need campaign attention.
 3. The UI shows a popup with the shortlisted products and short reasons.
-4. The matching table rows are highlighted and marked as suggested.
-5. The user still chooses one product before creating a campaign.
+4. The matching table rows are highlighted.
+5. Suggested rows show a `View recommendation` button in the `Suggested` column.
+6. `View recommendation` opens a small popover with the AI recommendation, confidence, and why the product was picked.
+7. The popover includes `Create campaign`, which opens the campaign create page for that product.
 
-The goal is not to build a complex analytics dashboard. The goal is to show Codex using real data to help the user choose a product.
+The suggestions popup does not include a separate `Use suggestion` action. It can be closed with the close button or by clicking outside the popup. Recommendation popovers can also be closed by clicking outside them.
+
+The goal is not to build a complex analytics dashboard. The goal is to show Codex using real data to help the user understand a recommendation and move directly into campaign creation.
 
 Visual references:
 
-- `docs/dashboard/simple-products-dashboard-02.png` for the simple dashboard body.
-- `docs/dashboard/products-campaign-flow-popup.png` for the Codex suggestion popup and highlighted-row idea.
+- `docs/dashboard/products-dashboard-clean.png` for the simple dashboard body.
+- `docs/dashboard/products-dashboard-codex-popup.png` for the promotion suggestions popup and highlighted-row idea.
+- `docs/dashboard/product-detail-campaign-history.png` for product detail and campaign history.
+- `docs/dashboard/campaign-create-scrollable.png` for the campaign create/detail page.
 
 ## Page 2: Product Detail And Campaign History
 
@@ -66,7 +72,7 @@ This page is for viewing product context and past campaigns. Fresh campaign gene
 
 ## Page 3: Campaign Create And Detail
 
-Selecting one product on the products page and clicking `Create campaign` opens the campaign create page.
+Selecting one product on the products page and clicking `Create campaign` opens the campaign create page. The user can also open the same campaign create page from a suggested product's AI recommendation popover.
 
 Required campaign setup fields:
 
@@ -96,11 +102,10 @@ When the user clicks `Generate`:
 The campaign detail state shows:
 
 - selected product;
-- discount;
-- quantity limit;
-- Codex reasoning;
+- AI recommendation;
 - Instagram caption;
 - image prompt;
+- campaign instructions;
 - generated image variants.
 
 The campaign detail page can also offer a later action to generate another image variant from the saved image prompt and optional custom guidance.
@@ -111,7 +116,7 @@ The campaign detail page can also offer a later action to generate another image
 Product and sales data
   -> promo-campaign-mcp exposes safe read-only context
   -> Codex suggests products that need promotion attention
-  -> user selects one product
+  -> user reviews an AI recommendation
   -> user sets discount, quantity limit, and initial image count
   -> Codex generates campaign content and image prompt
   -> backend generates initial image variants
