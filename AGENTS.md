@@ -6,20 +6,22 @@ Keep the project simple and aligned with the docs. The point is to show a practi
 
 ## Documentation
 
-The project docs explain the product vision, architecture, local setup, campaign workflow, data model, Codex/MCP usage, image generation flow, API smoke checks, and implementation planning approach.
+The project docs explain the product vision, architecture, local setup, product workflow, data model, Codex/MCP usage, image generation flow, API smoke checks, and implementation planning approach.
 
 Start with these:
 
 - `VISION.md` for the product idea and scope.
 - `ARCHITECTURE.md` for the technical direction.
 - `docs/setup.md` for local setup, runtime modes, and validation commands.
-- `docs/` for supporting details.
+- `docs/product/` for product behavior and technical product docs.
+- `docs/exec-plans/` for exact implementation plans.
+- `docs/` root for common operational docs.
 
-If a new decision, workflow, interface, or implementation detail does not fit an existing doc, create a new doc under `docs/` and link it from the most relevant existing place.
+If a new decision, workflow, interface, or implementation detail does not fit an existing doc, create a new doc in the closest matching docs folder and link it from the most relevant existing place.
 
 ## Planning Rules
 
-Use `docs/PLANS.md` when creating implementation plans.
+Use `docs/exec-plans/README.md` when creating implementation plans.
 
 When creating an ExecPlan, draft it first, validate that exact draft with a fresh sub-agent, then update it with useful feedback before implementation.
 

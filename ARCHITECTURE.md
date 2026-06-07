@@ -163,12 +163,9 @@ Codex should not write directly to the app database. It should call only read-on
 
 ## Documentation
 
-- [Campaign workflow](docs/campaign-workflow.md)
-- [Auth](docs/auth.md)
-- [Data model](docs/data-model.md)
-- [Codex MCP contract](docs/codex-tools.md)
-- [Image generation](docs/image-generation.md)
-- [Realtime voice control](docs/realtime-voice.md)
+- [Product docs](docs/product/README.md)
+- [Local setup](docs/setup.md)
+- [ExecPlans](docs/exec-plans/README.md)
 
 ## References
 

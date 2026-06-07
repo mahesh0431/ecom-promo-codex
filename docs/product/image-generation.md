@@ -50,6 +50,6 @@ If live image generation fails during campaign creation, the backend returns an 
 
 ## Runtime Auth
 
-Image generation and Codex SDK runs both use the backend `OPENAI_API_KEY`. `IMAGE_GENERATION_MODE` switches between deterministic `fake` generation and live `openai` generation; it is not a credential.
+Image generation and Codex SDK runs both use the backend `OPENAI_API_KEY`. Live OpenAI image generation is the default. Set `IMAGE_GENERATION_MODE="fake"` only when you want deterministic local or test images without live OpenAI calls.
 
 The app should show image runtime readiness, but should not ask the user to enter an API key in the browser during the demo.

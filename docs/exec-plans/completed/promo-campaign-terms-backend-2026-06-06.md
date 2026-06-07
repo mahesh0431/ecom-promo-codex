@@ -2,7 +2,7 @@
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-This plan follows `docs/PLANS.md`.
+This plan follows `docs/exec-plans/README.md`.
 
 ## Purpose / Big Picture
 
@@ -33,7 +33,7 @@ This plan is backend-only. It does not implement the UI pages or generate new UI
 ## Surprises & Discoveries
 
 - Observation: Earlier backend work treated image generation as a separate second-step action only.
-  Evidence: `docs/image-generation.md` previously described `Saved campaign -> user clicks Generate Image Variants`.
+  Evidence: `docs/product/image-generation.md` previously described `Saved campaign -> user clicks Generate Image Variants`.
 
 - Observation: The current campaign model does not store offer terms.
   Evidence: `prisma/schema.prisma` `Campaign` currently has `prompt`, `optionalInstructions`, `instagramCaption`, `imagePrompt`, and `codexReasoning`, but no discount or quantity fields.
@@ -129,11 +129,11 @@ Current durable docs updated for this plan:
 
 - `VISION.md`
 - `ARCHITECTURE.md`
-- `docs/campaign-workflow.md`
-- `docs/data-model.md`
-- `docs/image-generation.md`
-- `docs/codex-tools.md`
-- `docs/dashboard/README.md`
+- `docs/product/campaign-workflow.md`
+- `docs/product/data-model.md`
+- `docs/product/image-generation.md`
+- `docs/product/codex-tools.md`
+- `docs/product/dashboard/README.md`
 
 Relevant current backend files:
 
@@ -390,18 +390,18 @@ Do not commit `.env`, `data/`, `output/`, or generated local screenshots.
 
 Relevant docs updated before this plan:
 
-- `docs/campaign-workflow.md`
-- `docs/data-model.md`
-- `docs/image-generation.md`
-- `docs/codex-tools.md`
+- `docs/product/campaign-workflow.md`
+- `docs/product/data-model.md`
+- `docs/product/image-generation.md`
+- `docs/product/codex-tools.md`
 - `VISION.md`
 - `ARCHITECTURE.md`
 
 Dashboard references saved for later UI work:
 
-- `docs/dashboard/simple-products-dashboard-02.png`
-- `docs/dashboard/products-campaign-flow-popup.png`
-- `docs/dashboard/README.md`
+- `docs/product/dashboard/simple-products-dashboard-02.png`
+- `docs/product/dashboard/products-campaign-flow-popup.png`
+- `docs/product/dashboard/README.md`
 
 This plan supersedes the earlier simple dashboard UI ExecPlan that existed only as an uncommitted draft. The UI plan should be recreated later after the backend contract is updated.
 

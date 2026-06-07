@@ -36,7 +36,6 @@ For the live Codex SDK agent, image generation, and realtime voice, add one serv
 
 ```text
 OPENAI_API_KEY="..."
-IMAGE_GENERATION_MODE="openai"
 ```
 
 The backend uses this same key for Codex SDK runs, OpenAI image generation, and realtime voice session secrets. The browser UI should never ask for an API key.
@@ -79,7 +78,7 @@ Use fake Codex and fake image generation when you want the workflow without live
 CODEX_GATEWAY=fake IMAGE_GENERATION_MODE=fake pnpm dev
 ```
 
-This is useful for UI checks and deterministic local development. The full live path should use `OPENAI_API_KEY` with `IMAGE_GENERATION_MODE="openai"`.
+This is useful for UI checks and deterministic local development. The normal live path only needs `OPENAI_API_KEY`.
 
 ## Validation Commands
 

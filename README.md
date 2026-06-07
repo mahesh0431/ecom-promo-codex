@@ -87,18 +87,10 @@ For deterministic fake mode, validation commands, and live smoke tests, see [Loc
 
 ## Docs
 
-- [Vision](VISION.md): product idea, core flow, and boundaries.
-- [Architecture](ARCHITECTURE.md): technical shape and runtime boundaries.
-- [Local Setup](docs/setup.md): install, environment, scripts, and validation.
-- [Campaign Workflow](docs/campaign-workflow.md): product dashboard, recommendations, campaign creation, and campaign history.
-- [Data Model](docs/data-model.md): SQLite/Prisma entities and persistence rules.
-- [Auth](docs/auth.md): seeded demo auth and session behavior.
-- [Codex MCP Contract](docs/codex-tools.md): how Codex gets safe product context.
-- [Image Generation](docs/image-generation.md): OpenAI image generation flow and storage.
-- [Realtime Voice Control](docs/realtime-voice.md): browser voice control for the same promo workflow.
-- [API Smoke Checks](docs/api-smoke.md): curl-based checks for backend routes.
-- [Dashboard References](docs/dashboard/README.md): accepted UI reference images.
-- [ExecPlan Guide](docs/PLANS.md): implementation planning format.
+- [Vision](VISION.md) and [Architecture](ARCHITECTURE.md) explain the idea and technical shape.
+- [Docs](docs/README.md) maps setup, product docs, API smoke checks, and implementation plans.
+- [Product docs](docs/product/README.md) cover workflow behavior, data, auth, Codex/MCP, images, voice, and UI references.
+- [ExecPlans](docs/exec-plans/README.md) hold exact implementation plans and completed plan history.
 
 ## Project Boundaries
 

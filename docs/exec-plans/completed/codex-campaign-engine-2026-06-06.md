@@ -2,7 +2,7 @@
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-This plan follows `docs/PLANS.md`.
+This plan follows `docs/exec-plans/README.md`.
 
 ## Purpose / Big Picture
 
@@ -130,8 +130,8 @@ Important existing files:
 - `src/server/auth/` provides seeded-only sessions.
 - `src/server/db/client.ts` provides Prisma access.
 - `prisma/schema.prisma` already includes `Campaign`.
-- `docs/codex-tools.md` defines the MCP boundary.
-- `docs/campaign-workflow.md` defines the user workflow.
+- `docs/product/codex-tools.md` defines the MCP boundary.
+- `docs/product/campaign-workflow.md` defines the user workflow.
 - `ARCHITECTURE.md` defines Codex, MCP, backend, and persistence responsibilities.
 
 Terms:
@@ -572,7 +572,7 @@ Do not add real UI screens. README may include curl commands for backend validat
     Update:
 
        README.md
-       docs/codex-tools.md if tool names or payloads changed
+       docs/product/codex-tools.md if tool names or payloads changed
        this ExecPlan progress/evidence sections
 
     README should add backend validation commands for:

@@ -33,11 +33,12 @@ Do not commit automatically. Commit only when the user asks, or when repo workfl
 Use these docs for durable product and technical direction:
 
 - `VISION.md`
-- `docs/campaign-workflow.md`
 - `ARCHITECTURE.md`
-- `docs/data-model.md`
-- `docs/codex-tools.md`
-- `docs/image-generation.md`
+- `docs/product/README.md`
+- `docs/product/campaign-workflow.md`
+- `docs/product/data-model.md`
+- `docs/product/codex-tools.md`
+- `docs/product/image-generation.md`
 
 Use `AGENTS.md` for repo navigation and agent-facing project rules.
 
@@ -199,7 +200,7 @@ Use this skeleton when creating a new ExecPlan.
 
     This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-    This plan follows `docs/PLANS.md`.
+    This plan follows `docs/exec-plans/README.md`.
 
     ## Purpose / Big Picture
 

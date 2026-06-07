@@ -2,7 +2,7 @@
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-This plan follows `docs/PLANS.md`.
+This plan follows `docs/exec-plans/README.md`.
 
 ## Purpose / Big Picture
 
@@ -85,7 +85,7 @@ Manual microphone/realtime testing is still expected when the user is ready, bec
 
 The active app is `/Users/mahesh/Projects/ecom-promo-codex`.
 
-The current user-facing workflow is documented in `docs/campaign-workflow.md`:
+The current user-facing workflow is documented in `docs/product/campaign-workflow.md`:
 
 - dashboard shows product metrics and a product table;
 - `Generate Promotion Suggestions` calls Codex-backed opportunity selection;
@@ -116,7 +116,7 @@ Definitions:
 
 Milestone 1: Finalize the V1 contract.
 
-At the end of this milestone, this plan has been reviewed and updated. The voice scope is locked to browser UI control over the existing promo workflow. The work touches only this ExecPlan and possibly durable docs if the review finds a product-level decision that belongs outside the plan. Validate by reading the plan against `docs/campaign-workflow.md`, `ARCHITECTURE.md`, and current OpenAI realtime docs. The expected result is a plan that can be implemented without relying on chat history.
+At the end of this milestone, this plan has been reviewed and updated. The voice scope is locked to browser UI control over the existing promo workflow. The work touches only this ExecPlan and possibly durable docs if the review finds a product-level decision that belongs outside the plan. Validate by reading the plan against `docs/product/campaign-workflow.md`, `ARCHITECTURE.md`, and current OpenAI realtime docs. The expected result is a plan that can be implemented without relying on chat history.
 
 Milestone 2: Add the realtime session foundation.
 
@@ -382,8 +382,8 @@ Official docs checked for this plan:
 Current project docs referenced:
 
 - `ARCHITECTURE.md`
-- `docs/campaign-workflow.md`
-- `docs/PLANS.md`
+- `docs/product/campaign-workflow.md`
+- `docs/exec-plans/README.md`
 
 ## Interfaces and Dependencies
 

@@ -2,7 +2,7 @@
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-This plan follows `docs/PLANS.md`.
+This plan follows `docs/exec-plans/README.md`.
 
 ## Purpose / Big Picture
 
@@ -24,7 +24,7 @@ This plan intentionally does not build the UI, Codex SDK runner, MCP server, cam
 ## Surprises & Discoveries
 
 - Observation: The current working tree already has uncommitted doc updates that clarify seeded-only auth and Codex/MCP ownership.
-  Evidence: `git status --short --branch` shows modified docs and new `docs/auth.md`.
+  Evidence: `git status --short --branch` shows modified docs and new `docs/product/auth.md`.
 
 - Observation: A fresh sub-agent review found the first draft was not deterministic enough around validation order, test database isolation, schema/API contracts, auth crypto, dependency versions, and seed data.
   Evidence: Review returned on 2026-06-06 before implementation.
@@ -157,9 +157,9 @@ Important docs:
 
 - `VISION.md` defines the user-facing flow: seeded sign-in, product metrics/table, Codex campaign opportunity discovery, saved campaign, and later image variants.
 - `ARCHITECTURE.md` defines the local-first shape: backend API, seeded demo auth, Prisma, SQLite, Codex SDK runner later, tiny MCP later, and OpenAI image generation later.
-- `docs/auth.md` defines seeded-only V0 auth: `demo@promo.test / demo-password`, no signup, no invite, no reset, no user creation flows.
-- `docs/data-model.md` defines the local model: user/session ownership, products, dated product sales, campaigns, and campaign images.
-- `docs/codex-tools.md` clarifies that MCP returns safe product/sales facts and Codex owns opportunity selection. That later MCP plan should use the services created here.
+- `docs/product/auth.md` defines seeded-only V0 auth: `demo@promo.test / demo-password`, no signup, no invite, no reset, no user creation flows.
+- `docs/product/data-model.md` defines the local model: user/session ownership, products, dated product sales, campaigns, and campaign images.
+- `docs/product/codex-tools.md` clarifies that MCP returns safe product/sales facts and Codex owns opportunity selection. That later MCP plan should use the services created here.
 
 Terms:
 

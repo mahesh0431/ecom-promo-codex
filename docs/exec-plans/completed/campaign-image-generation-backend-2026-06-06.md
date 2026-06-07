@@ -2,7 +2,7 @@
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-This plan follows `docs/PLANS.md`.
+This plan follows `docs/exec-plans/README.md`.
 
 ## Purpose / Big Picture
 
@@ -97,9 +97,9 @@ Completed earlier plans already provide:
 
 Relevant existing files:
 
-- `docs/image-generation.md` defines the role split: Codex creates image prompts, backend creates images.
+- `docs/product/image-generation.md` defines the role split: Codex creates image prompts, backend creates images.
 - `ARCHITECTURE.md` says backend owns image generation API calls, image storage, response validation, and UI-facing API responses.
-- `docs/data-model.md` says one campaign can have many generated images.
+- `docs/product/data-model.md` says one campaign can have many generated images.
 - `src/server/campaigns/campaign-service.ts` owns campaign persistence and user scoping.
 - `src/app/api/campaigns/[campaignId]/route.ts` shows the protected campaign-detail route pattern.
 - `src/server/env.ts` currently reads database/session env only.
@@ -121,8 +121,8 @@ Implementation details:
 
 - Add the official `openai` package as a direct runtime dependency.
 - Add `OPENAI_API_KEY` to `.env.example`.
-- Add `IMAGE_GENERATION_MODE` to `.env.example` and `.env.test.example`.
-  - `.env.example`: `IMAGE_GENERATION_MODE="openai"`;
+- Add `IMAGE_GENERATION_MODE` for deterministic fake/test mode.
+  - Current setup defaults live image generation in code, so `.env.example` only needs `OPENAI_API_KEY`.
   - `.env.test.example`: `IMAGE_GENERATION_MODE="fake"`.
 - Do not add separate `OPENAI_IMAGE_*` env vars in Plan 3.
 - Do not make `OPENAI_API_KEY` globally required in `getServerEnv()`. It should be optional there and required only by the OpenAI image gateway or factory when `IMAGE_GENERATION_MODE="openai"`.
@@ -275,7 +275,7 @@ Expected result: route tests cover unauthenticated rejection, generation with fa
 
 Milestone 4: Smoke Script, Documentation, and Full Verification
 
-At the end of this milestone, the full backend image slice is documented and verified without requiring UI work. The work touches `README.md`, maybe `docs/image-generation.md` if durable behavior changed, and a new live smoke script under `scripts`.
+At the end of this milestone, the full backend image slice is documented and verified without requiring UI work. The work touches `README.md`, maybe `docs/product/image-generation.md` if durable behavior changed, and a new live smoke script under `scripts`.
 
 Implementation details:
 

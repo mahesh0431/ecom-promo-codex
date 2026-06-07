@@ -2,7 +2,7 @@
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 
-This plan follows `docs/PLANS.md`.
+This plan follows `docs/exec-plans/README.md`.
 
 ## Purpose / Big Picture
 
@@ -14,7 +14,7 @@ This plan implements the UI against the current backend. It does not add new dat
 
 ## Progress
 
-- [x] (2026-06-06 17:36Z) [M1] Saved the four accepted UI reference images into `docs/dashboard/`.
+- [x] (2026-06-06 17:36Z) [M1] Saved the four accepted UI reference images into `docs/product/dashboard/`.
 - [x] (2026-06-06 17:36Z) [M1] Created the UI workflow ExecPlan from the accepted references and current backend contract.
 - [x] (2026-06-06 18:04Z) [M2] Added the frontend app shell, Tailwind/shadcn visual foundation, and seeded login.
 - [x] (2026-06-06 18:04Z) [M3] Implemented products dashboard, promotion suggestions popup, and product selection.
@@ -134,12 +134,12 @@ Current relevant backend APIs:
 
 Accepted visual references:
 
-- `docs/dashboard/products-dashboard-clean.png`
-- `docs/dashboard/products-dashboard-codex-popup.png`
-- `docs/dashboard/product-detail-campaign-history.png`
-- `docs/dashboard/campaign-create-scrollable.png`
+- `docs/product/dashboard/products-dashboard-clean.png`
+- `docs/product/dashboard/products-dashboard-codex-popup.png`
+- `docs/product/dashboard/product-detail-campaign-history.png`
+- `docs/product/dashboard/campaign-create-scrollable.png`
 
-Existing older exploratory references may stay in `docs/dashboard/`, but the four files above are the implementation references for this plan.
+Existing older exploratory references may stay in `docs/product/dashboard/`, but the four files above are the implementation references for this plan.
 
 Terms:
 
@@ -154,7 +154,7 @@ Terms:
 
 Milestone 1: Lock the UI references and plan.
 
-At the end of this milestone, the four accepted reference images are saved under `docs/dashboard/`, this ExecPlan exists under `docs/exec-plans/active/`, and the plan records how current backend limits affect UI implementation. Validate by checking `find docs/dashboard -maxdepth 1 -type f -name '*.png'` and reading this plan.
+At the end of this milestone, the four accepted reference images are saved under `docs/product/dashboard/`, this ExecPlan exists under `docs/exec-plans/active/`, and the plan records how current backend limits affect UI implementation. Validate by checking `find docs/dashboard -maxdepth 1 -type f -name '*.png'` and reading this plan.
 
 Milestone 2: Add the frontend shell and visual system.
 
@@ -197,7 +197,7 @@ Implement campaign create/view last. Use local form state for discount, quantity
        cd /Users/mahesh/Projects/ecom-promo-codex
        git status --short
 
-2. Save accepted references in `docs/dashboard/`.
+2. Save accepted references in `docs/product/dashboard/`.
 
 3. Add or update:
 
@@ -261,7 +261,7 @@ In-app Browser validation:
 
     CODEX_GATEWAY=fake IMAGE_GENERATION_MODE=fake pnpm dev
 
-Expected: the app is usable at `http://localhost:3000`; the core flow works without live OpenAI calls. Capture screenshots for the four accepted states and compare them against the corresponding references in `docs/dashboard/`.
+Expected: the app is usable at `http://localhost:3000`; the core flow works without live OpenAI calls. Capture screenshots for the four accepted states and compare them against the corresponding references in `docs/product/dashboard/`.
 
 ## Idempotence and Recovery
 
@@ -279,10 +279,10 @@ Do not commit `.env`, `data/`, `.next/`, or `output/`.
 
 Reference images saved for this plan:
 
-- `docs/dashboard/products-dashboard-clean.png`
-- `docs/dashboard/products-dashboard-codex-popup.png`
-- `docs/dashboard/product-detail-campaign-history.png`
-- `docs/dashboard/campaign-create-scrollable.png`
+- `docs/product/dashboard/products-dashboard-clean.png`
+- `docs/product/dashboard/products-dashboard-codex-popup.png`
+- `docs/product/dashboard/product-detail-campaign-history.png`
+- `docs/product/dashboard/campaign-create-scrollable.png`
 
 The latest campaign create reference intentionally shows a scrollable page and a horizontal image strip. The UI should keep variants capped at `2` even if a concept image visually hints at more.
 

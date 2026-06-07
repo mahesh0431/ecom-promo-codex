@@ -47,10 +47,10 @@ The goal is not to build a complex analytics dashboard. The goal is to show Code
 
 Visual references:
 
-- `docs/dashboard/products-dashboard-clean.png` for the simple dashboard body.
-- `docs/dashboard/products-dashboard-codex-popup.png` for the promotion suggestions popup and highlighted-row idea.
-- `docs/dashboard/product-detail-campaign-history.png` for product detail and campaign history.
-- `docs/dashboard/campaign-create-scrollable.png` for the campaign create/detail page.
+- `dashboard/products-dashboard-clean.png` for the simple dashboard body.
+- `dashboard/products-dashboard-codex-popup.png` for the promotion suggestions popup and highlighted-row idea.
+- `dashboard/product-detail-campaign-history.png` for product detail and campaign history.
+- `dashboard/campaign-create-scrollable.png` for the campaign create/detail page.
 
 ## Page 2: Product Detail And Campaign History
 
