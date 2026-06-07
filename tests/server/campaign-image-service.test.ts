@@ -31,6 +31,9 @@ describe("campaign image service", () => {
     expect(result.images).toHaveLength(2);
     expect(result.images[0]).toMatchObject({
       campaignId: campaign.id,
+      imageUrl:
+        `/api/campaigns/${campaign.id}` +
+        `/images/${result.images[0]?.imageId}`,
       variantIndex: 1,
       mimeType: "image/jpeg",
       model: "fake-gpt-image-2",

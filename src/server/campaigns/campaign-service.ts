@@ -23,6 +23,12 @@ type GenerateCampaignInput = {
   optionalInstructions?: string | null;
 };
 
+type CreateCampaignInput = GenerateCampaignInput & {
+  instagramCaption: string;
+  imagePrompt: string;
+  reasoning: string;
+};
+
 export async function findCampaignOpportunitiesForUser(
   userId: string,
   gateway: CodexGateway = createCodexGateway()
@@ -60,6 +66,79 @@ export async function findCampaignOpportunitiesForUser(
   });
 
   return { opportunities };
+}
+
+export async function createCampaignForUser(
+  input: CreateCampaignInput,
+  imageGateway?: ImageGenerationGateway
+) {
+  await assertUserExists(input.userId);
+  assertCampaignCreationInput(input);
+
+  const optionalInstructions = normalizeOptionalInstructions(
+    input.optionalInstructions
+  );
+  const instagramCaption = normalizeRequiredText(
+    input.instagramCaption,
+    "Instagram caption",
+    2200
+  );
+  const imagePrompt = normalizeRequiredText(
+    input.imagePrompt,
+    "Image prompt",
+    4000
+  );
+  const reasoning = normalizeRequiredText(input.reasoning, "Reasoning", 2000);
+  const context = await getProductCampaignContext(input.productId);
+  assertQuantityLimitFitsStock(input.quantityLimit, context.availableQuantity);
+  const generatedImages = await generateCampaignImageBytes({
+    prompt: imagePrompt,
+    variants: input.imageVariants
+  }, imageGateway);
+
+  const created = await prisma.$transaction(async (tx) => {
+    const campaign = await tx.campaign.create({
+      data: {
+        userId: input.userId,
+        productId: input.productId,
+        prompt: buildSavedPrompt({
+          productName: context.product.name,
+          signalFacts: context.signalFacts,
+          recentSalesSummary: context.recentSalesSummary,
+          discountPercent: input.discountPercent,
+          quantityLimit: input.quantityLimit,
+          optionalInstructions
+        }),
+        optionalInstructions,
+        discountPercent: input.discountPercent,
+        quantityLimit: input.quantityLimit,
+        initialImageVariantsRequested: input.imageVariants,
+        instagramCaption,
+        imagePrompt,
+        codexReasoning: reasoning
+      },
+      include: { product: true }
+    });
+    const images = await Promise.all(
+      generatedImages.map((image, index) =>
+        tx.campaignImage.create({
+          data: createCampaignImageRecordData({
+            campaignId: campaign.id,
+            prompt: imagePrompt,
+            image,
+            variantIndex: index + 1
+          })
+        })
+      )
+    );
+
+    return { campaign, images };
+  });
+
+  return {
+    campaign: toCampaignDto(created.campaign),
+    images: created.images.map(toCampaignImageMetadataDto)
+  };
 }
 
 export async function generateCampaignForUser(
@@ -216,6 +295,20 @@ function normalizeOptionalInstructions(value: string | null | undefined) {
   }
 
   return trimmed.slice(0, 1000);
+}
+
+function normalizeRequiredText(value: string, fieldName: string, maxLength: number) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `${fieldName} is required.`,
+      400
+    );
+  }
+
+  return trimmed.slice(0, maxLength);
 }
 
 function assertCampaignCreationInput(input: GenerateCampaignInput) {

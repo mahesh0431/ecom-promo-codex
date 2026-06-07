@@ -102,6 +102,18 @@ pnpm db:seed
 pnpm db:verify
 ```
 
+## Codex App Skill
+
+Codex App can use the checked-in repo skill at `.agents/skills/promo-campaign-studio`.
+
+The skill does not require MCP setup. Follow the README setup, start the app yourself, then ask Codex to use the Promo Campaign Studio skill. The skill reads `.agents/skills/promo-campaign-studio/setup.md`, verifies `.env`, `OPENAI_API_KEY`, the running app, and seeded data, then logs into the local app API with the seeded demo account.
+
+For this skill workflow, Codex App is the agent. It reads product API data, decides recommendations itself, and saves Codex App-authored campaign content through `POST /api/campaigns`. It should not call `/api/campaign-opportunities` or `/api/campaigns/generate`, because those routes start the app's backend Codex SDK agent for the in-app UI demo.
+
+When the skill creates or regenerates campaign images, it should fetch returned `imageUrl` values with the saved login cookie and render the downloaded image inline in Codex App.
+
+Do not use fake runtime modes for the skill demo. The skill should not start, stop, or restart the app server. If `.env`, `OPENAI_API_KEY`, the running API, or seeded data is missing, it should stop and ask the user to follow the README setup.
+
 ## Live Smoke Tests
 
 Run these only when `OPENAI_API_KEY` is set:

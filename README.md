@@ -6,7 +6,7 @@ The app is intentionally narrow. It is not a generic chatbot and it is not tryin
 
 ## Why This Exists
 
-Most promotion workflows start with a blank brief or a rushed guess. This demo starts with product and sales data. A Codex SDK-powered agent inspects that context through a small read-only MCP layer, recommends products that need campaign attention, and helps generate the campaign once the user chooses the offer terms.
+Most promotion workflows start with a blank brief or a rushed guess. This demo starts with product and sales data. A Codex SDK-powered agent inspects that context through small read-only MCP tools, recommends products that need campaign attention, and helps generate the campaign once the user chooses the offer terms.
 
 The point is to show the Codex SDK used as an agent inside a real application workflow: authenticated UI, persisted data, scoped tools, generated campaign output, and campaign creative.
 
@@ -14,10 +14,11 @@ The point is to show the Codex SDK used as an agent inside a real application wo
 
 - A seeded demo login.
 - SQLite persistence through Prisma.
-- A read-only MCP layer for product and sales context.
+- Read-only MCP tools for backend Codex product context.
 - A Codex SDK agent for promotion suggestions and campaign generation.
 - OpenAI image generation for campaign variants.
 - Optional realtime voice control for the same UI workflow.
+- A repo-scoped Codex App skill that can operate the local app APIs.
 - A simple Next.js UI built with Tailwind CSS and shadcn-style components.
 
 ## The Demo Flow
@@ -83,7 +84,45 @@ Password: demo-password
 
 The Codex SDK agent, image generation, and realtime voice use the single server-side `OPENAI_API_KEY` from `.env`. The app never asks for the key in the browser. For voice, the browser receives only a short-lived realtime client secret.
 
-For deterministic fake mode, validation commands, and live smoke tests, see [Local Setup](docs/setup.md).
+For deterministic fake mode, the Codex App skill, validation commands, and live smoke tests, see [Local Setup](docs/setup.md).
+
+## Use From Codex App
+
+The repo includes a Codex App skill at `.agents/skills/promo-campaign-studio`. It is a local demo skill: it uses the app APIs at `http://localhost:3000`, so the app must already be set up and running before the skill can do anything.
+
+For this skill workflow, Codex App is the agent. The skill reads product data from the app APIs, Codex App decides the recommendation and campaign content, and the app only handles auth, persistence, and image generation. It does not use the app's backend Codex SDK recommendation/generation endpoints.
+
+First finish the local setup above:
+
+1. Run `pnpm install`.
+2. Run `pnpm setup:demo`.
+3. Add `OPENAI_API_KEY="..."` to `.env`.
+4. Start the app with `pnpm dev`.
+5. Confirm `http://localhost:3000` opens and the demo login works.
+
+Then open a new Codex App thread and install the skill from this repo:
+
+```text
+install the skill from here: /Users/mahesh/Projects/ecom-promo-codex/.agents/skills/promo-campaign-studio
+```
+
+If your checkout is in a different folder, use that skill folder path instead.
+
+After the skill is installed, ask Codex App:
+
+```text
+use the promo-campaign-studio skill and find me the recommended products to run the promo
+```
+
+To create a saved campaign from its top recommendation:
+
+```text
+create the campaign for your recommendation
+```
+
+When the skill creates images, it should fetch the saved image from the app and render it inline in the Codex App response, not just return a localhost image URL.
+
+The skill should stop and ask you to follow this README setup if `.env`, `OPENAI_API_KEY`, seeded data, login, or the local server is missing. It should not start the server, run setup, or switch to fake mode.
 
 ## Docs
 

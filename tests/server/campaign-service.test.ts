@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test } from "vitest";
 import type { CodexGateway } from "@/server/codex/codex-gateway";
 import { createFakeCodexGateway } from "@/server/codex/fake-codex-gateway";
 import {
+  createCampaignForUser,
   findCampaignOpportunitiesForUser,
   generateCampaignForUser,
   getCampaignForUser,
@@ -129,6 +130,57 @@ describe("campaign service", () => {
     expect(stored?.quantityLimit).toBe(80);
     expect(stored?.initialImageVariantsRequested).toBe(2);
     expect(stored?.images).toHaveLength(2);
+  });
+
+  test("creates and persists an agent-authored campaign without backend Codex", async () => {
+    const user = await getSeededUser();
+    const imageGateway = createFakeImageGenerationGateway();
+    const coldBrew = await getColdBrewProduct();
+
+    const result = await createCampaignForUser(
+      {
+        userId: user.id,
+        productId: coldBrew.productId,
+        discountPercent: 25,
+        quantityLimit: 60,
+        imageVariants: 1,
+        instagramCaption:
+          "Cold Brew Concentrate is 25% off for the first 60 units.",
+        imagePrompt:
+          "Square Instagram product image for Cold Brew Concentrate with clear 25% off and limit 60 units text.",
+        reasoning:
+          "High available stock and low current-month sales make this the top promo candidate.",
+        optionalInstructions: "  Make it feel crisp and summer-ready.  "
+      },
+      imageGateway
+    );
+
+    expect(result.campaign).toMatchObject({
+      productId: coldBrew.productId,
+      discountPercent: 25,
+      quantityLimit: 60,
+      initialImageVariantsRequested: 1,
+      instagramCaption:
+        "Cold Brew Concentrate is 25% off for the first 60 units.",
+      imagePrompt:
+        "Square Instagram product image for Cold Brew Concentrate with clear 25% off and limit 60 units text.",
+      codexReasoning:
+        "High available stock and low current-month sales make this the top promo candidate.",
+      optionalInstructions: "Make it feel crisp and summer-ready."
+    });
+    expect(result.images).toHaveLength(1);
+    expect(result.images[0]).toMatchObject({
+      campaignId: result.campaign.campaignId,
+      variantIndex: 1,
+      mimeType: "image/jpeg"
+    });
+
+    const stored = await prisma.campaign.findUnique({
+      where: { id: result.campaign.campaignId },
+      include: { images: true }
+    });
+    expect(stored?.codexReasoning).toContain("top promo candidate");
+    expect(stored?.images[0]?.prompt).toContain("Square Instagram");
   });
 
   test("accepts a 100 percent discount", async () => {

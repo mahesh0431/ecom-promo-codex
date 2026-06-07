@@ -127,9 +127,13 @@ The backend passes the selected product context plus user-confirmed offer terms,
 
 The backend saves this as a campaign. The saved `imagePrompt` is used for the initial image variants during campaign creation and for later additional image variants.
 
-## Future MCP Expansion
+## Codex App Skill Path
 
-V0 keeps MCP read-only. A later version can expose more app actions through MCP so Codex App can use the same workflow directly, including image-related actions if that becomes useful. V0 should not expand MCP beyond campaign context.
+MCP stays read-only for the backend Codex SDK path. The reviewer-facing Codex App workflow uses the repo skill at `.agents/skills/promo-campaign-studio` and calls the app HTTP APIs directly. This avoids requiring manual MCP setup just to try the skill.
+
+For the Codex App skill, Codex App is the agent. It should read product APIs, decide recommendations from returned product facts, write the campaign caption/image prompt/reasoning itself, and create the saved campaign through `POST /api/campaigns`.
+
+The skill should not call `POST /api/campaign-opportunities` or `POST /api/campaigns/generate`; those routes exist for the in-app UI path where the backend Codex SDK agent is intentionally being demonstrated.
 
 ## Why No Raw SQL Tool In V0
 

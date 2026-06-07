@@ -225,6 +225,7 @@ export function toCampaignImageMetadataDto(image: {
   return {
     imageId: image.id,
     campaignId: image.campaignId,
+    imageUrl: campaignImageUrl(image),
     variantIndex: image.variantIndex,
     mimeType: image.mimeType,
     model: image.model,
@@ -232,4 +233,11 @@ export function toCampaignImageMetadataDto(image: {
     status: image.status,
     createdAt: image.createdAt.toISOString()
   };
+}
+
+function campaignImageUrl(image: { id: string; campaignId: string }) {
+  return (
+    `/api/campaigns/${encodeURIComponent(image.campaignId)}` +
+    `/images/${encodeURIComponent(image.id)}`
+  );
 }

@@ -72,6 +72,16 @@ describe("SDK Codex gateway configuration", () => {
     });
   });
 
+  test("keeps backend Codex SDK access scoped to read-only MCP tools", () => {
+    const server = buildCodexConfig().mcp_servers["promo-campaign-mcp"];
+
+    expect(server.enabled_tools).toEqual([
+      "get_campaign_overview",
+      "list_products_for_campaign_review",
+      "get_product_campaign_context"
+    ]);
+  });
+
   test("requires the shared OpenAI API key for Codex SDK runs", () => {
     delete process.env.OPENAI_API_KEY;
 

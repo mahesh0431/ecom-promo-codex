@@ -47,12 +47,25 @@ curl -s -b /tmp/ecom-promo-cookies.txt \
 
 Replace `<productId>` with a product ID from `/api/products`.
 
+For the in-app UI path, this route asks the backend Codex SDK agent to write campaign content:
+
 ```bash
 curl -s -b /tmp/ecom-promo-cookies.txt \
   -H "Content-Type: application/json" \
   -d '{"productId":"<productId>","discountPercent":15,"quantityLimit":50,"imageVariants":1,"optionalInstructions":"Keep it warm and premium."}' \
   http://localhost:3000/api/campaigns/generate
 ```
+
+For the Codex App skill path, Codex App writes the recommendation, caption, and image prompt, then the app saves it and generates images:
+
+```bash
+curl -s -b /tmp/ecom-promo-cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"productId":"<productId>","discountPercent":15,"quantityLimit":50,"imageVariants":1,"instagramCaption":"Caption written from product context.","imagePrompt":"Image prompt written from product context and offer terms.","reasoning":"Why this product and offer were selected."}' \
+  http://localhost:3000/api/campaigns
+```
+
+Image metadata returned by campaign creation and image-generation routes includes a relative `imageUrl`. Codex App should fetch that URL with the saved cookie and render the downloaded image inline instead of only returning a localhost URL.
 
 ## Campaign History
 

@@ -110,6 +110,7 @@ type ApiEnvelope<T> = {
 type CampaignImageDto = {
   imageId: string;
   campaignId: string;
+  imageUrl: string;
   variantIndex: number;
   mimeType: string;
   model: string | null;
@@ -2954,7 +2955,7 @@ function formatCents(value: number) {
 }
 
 function campaignImageSrc(image: CampaignImageDto) {
-  return `/api/campaigns/${encodeURIComponent(image.campaignId)}/images/${encodeURIComponent(image.imageId)}`;
+  return image.imageUrl;
 }
 
 function formatDate(value: string) {

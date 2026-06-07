@@ -52,6 +52,9 @@ describe("campaign image routes", () => {
     expect(generateBody.data.images).toHaveLength(2);
     expect(generateBody.data.images[0]).toMatchObject({
       campaignId: campaign.id,
+      imageUrl:
+        `/api/campaigns/${campaign.id}` +
+        `/images/${generateBody.data.images[0].imageId}`,
       variantIndex: 1,
       mimeType: "image/jpeg",
       status: "completed"
@@ -79,6 +82,9 @@ describe("campaign image routes", () => {
       1,
       2
     ]);
+    expect(listBody.data.images[0].imageUrl).toBe(
+      `/api/campaigns/${campaign.id}/images/${listBody.data.images[0].imageId}`
+    );
     expect(listBody.data.images[0]).not.toHaveProperty("imageData");
 
     const rawResponse = await getImage(

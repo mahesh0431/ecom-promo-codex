@@ -41,9 +41,9 @@ V1 adds realtime voice so the user can talk through campaign refinement instead 
 
 Voice is browser UI control, not a second backend workflow. The browser receives a short-lived realtime client secret from the backend, then a realtime voice agent reads compact screen context and calls typed UI actions such as opening a product, creating a campaign, setting offer terms, and generating additional images. Long-running actions reuse the app's normal loading and error dialogs, and voice-driven campaign draft updates share the same state as the visible form.
 
-### V2: Codex App Skill And MCP Integration
+### V2: Codex App Skill
 
-V2 makes the workflow Codex-native. Codex App can use a repo skill plus MCP tools to work with the same promotion workflow, while the backend remains the system of record.
+V2 makes the workflow available from Codex App without asking reviewers to configure MCP. Codex App can use the repo skill to login to the local app and call the same HTTP APIs the UI uses.
 
 ## Local-First Shape
 
@@ -59,6 +59,16 @@ Demo UI
       -> promo-campaign-mcp
         -> read-only product/sales context
     -> OpenAI image generation
+
+Codex App V2
+  -> repo skill
+  -> local app HTTP API
+  -> Backend API
+    -> seeded demo auth
+    -> Prisma
+    -> SQLite
+    -> Codex SDK runner
+    -> OpenAI image generation
 ```
 
 The app can run locally. The local app owns the database, workspace, and UI. OpenAI services are still external and require credentials.
@@ -71,7 +81,7 @@ Recommended stack:
 - Prisma with SQLite;
 - seeded-only email/password login;
 - Codex SDK for the agent loop;
-- a tiny read-only MCP server for campaign/product context;
+- a tiny read-only MCP server for backend Codex product context;
 - OpenAI image generation for campaign images.
 - OpenAI Realtime for optional voice control in V1.
 
@@ -132,7 +142,7 @@ The UI can show runtime status such as `Codex runtime: Connected`, `Image API: C
 
 ## Responsibility Split
 
-Codex SDK owns:
+Backend Codex SDK owns:
 
 - deciding which MCP tools to call;
 - selecting campaign opportunities;
@@ -140,12 +150,21 @@ Codex SDK owns:
 - generating Instagram captions;
 - generating image prompts from product context and offer terms.
 
+Backend Codex SDK uses only read-only MCP tools. It returns structured suggestions and campaign content for the backend to validate and persist.
+
+Codex App V2 owns:
+
+- acting as the agent when the user works directly from Codex App;
+- using the repo skill as workflow guidance;
+- reading product and campaign context through app HTTP APIs;
+- calling the same authenticated app APIs the UI uses for suggestions, campaign creation, campaign reads, and image variants.
+
 The MCP server owns:
 
 - exposing safe product and sales context;
 - returning product and sales facts for campaign analysis;
 - avoiding final opportunity selection so Codex owns the reasoning step;
-- refusing writes, secrets, auth/session access, and image generation.
+- refusing writes, secrets, auth/session access, image generation, and product mutation.
 
 The backend owns:
 
@@ -159,7 +178,7 @@ The backend owns:
 - response validation;
 - UI-facing API responses.
 
-Codex should not write directly to the app database. It should call only read-only MCP tools, then return structured recommendations, captions, and image prompts for the backend to persist.
+Codex should not write directly to the app database. Backend Codex SDK calls only read-only MCP tools. Codex App V2 calls authenticated app HTTP APIs, so normal backend validation and Prisma persistence remain the boundary.
 
 ## Documentation
 

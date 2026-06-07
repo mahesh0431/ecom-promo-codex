@@ -7,6 +7,7 @@ import type { VoiceCampaignDraft, VoiceCommandResult } from "./voice-types";
 export type CampaignImageDto = {
   imageId: string;
   campaignId: string;
+  imageUrl: string;
   variantIndex: number;
   mimeType: string;
   model: string | null;

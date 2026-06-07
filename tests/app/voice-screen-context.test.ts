@@ -66,6 +66,7 @@ const campaignDetail: CampaignDetailDto = {
     {
       imageId: "image-1",
       campaignId: "campaign-1",
+      imageUrl: "/api/campaigns/campaign-1/images/image-1",
       variantIndex: 1,
       mimeType: "image/png",
       model: "gpt-image-2",

@@ -1,0 +1,8 @@
+interface:
+  display_name: "Promo Campaign Studio"
+  short_description: "Inspect products and create promo campaigns through the local app API"
+  brand_color: "#2563EB"
+  default_prompt: "Use the promo campaign studio skill to inspect products and create a promo campaign through the local app API."
+
+policy:
+  allow_implicit_invocation: true

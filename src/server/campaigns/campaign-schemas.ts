@@ -29,6 +29,23 @@ export const generateCampaignRequestSchema = z
   })
   .strict();
 
+export const createCampaignRequestSchema = z
+  .object({
+    productId: z.string().min(1),
+    discountPercent: z.number().int().min(1).max(100),
+    quantityLimit: z.number().int().positive(),
+    imageVariants: z.number().int().min(1).max(MAX_IMAGE_VARIANTS),
+    instagramCaption: z.string().trim().min(1).max(2200),
+    imagePrompt: z.string().trim().min(1).max(4000),
+    reasoning: z.string().trim().min(1).max(2000),
+    optionalInstructions: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim() === "" ? undefined : value,
+      z.string().min(1).optional()
+    )
+  })
+  .strict();
+
 export const campaignProductDtoSchema = z
   .object({
     sku: z.string().min(1),
