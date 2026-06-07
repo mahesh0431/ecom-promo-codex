@@ -5,13 +5,15 @@ This guide covers local setup, demo login, runtime modes, and validation command
 ## Requirements
 
 - Node.js 20 or newer
-- pnpm 10
+- pnpm 10 through Corepack
 - `OPENAI_API_KEY` for live Codex SDK runs and live image generation
 
 ## One-Time Setup
 
 ```bash
-pnpm install && pnpm setup:demo
+corepack enable pnpm
+pnpm install
+pnpm setup:demo
 ```
 
 The setup command:

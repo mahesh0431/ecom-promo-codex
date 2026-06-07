@@ -35,11 +35,13 @@ The point is to show Codex inside a real application workflow: authenticated UI,
 Requirements:
 
 - Node.js 20+
-- pnpm 10+
+- pnpm 10+ through Corepack
 - one `OPENAI_API_KEY` for live Codex and image generation
 
 ```bash
-pnpm install && pnpm setup:demo
+corepack enable pnpm
+pnpm install
+pnpm setup:demo
 ```
 
 Add your OpenAI key to `.env`:
