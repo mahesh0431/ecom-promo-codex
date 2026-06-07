@@ -922,7 +922,7 @@ export default function PromoWorkflow({
       <main className="grid min-h-screen place-items-center px-6">
         <div className="flex items-center gap-3 text-sm text-slate-600">
           <LoaderCircle className="size-4 animate-spin text-blue-600" />
-          Loading Promo Campaign Studio
+          Loading eCommerce Promotion Cockpit
         </div>
       </main>
     );
@@ -1094,7 +1094,7 @@ function AppHeader({
             <Tag className="size-5" />
           </div>
           <span className="truncate text-xl font-semibold text-slate-950">
-            Promo Campaign Studio
+            eCommerce Promotion Cockpit
           </span>
         </div>
 
@@ -1279,7 +1279,7 @@ function LoginScreen({
               </div>
               <div>
                 <CardTitle className="text-xl">
-                  Promo Campaign Studio
+                  eCommerce Promotion Cockpit
                 </CardTitle>
                 <CardDescription>
                   Sign in with the seeded demo account.

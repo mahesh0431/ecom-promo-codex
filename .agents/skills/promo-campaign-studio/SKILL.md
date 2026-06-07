@@ -3,7 +3,7 @@ name: promo-campaign-studio
 description: Use this in ecom-promo-codex to inspect products, recommend promo opportunities, create Codex App-authored campaigns, view campaigns, and generate campaign images through the local app HTTP APIs.
 ---
 
-Use the running Promo Campaign Studio app API for product, campaign, and campaign-image work in this repo. Do not edit source files for app data tasks unless the user explicitly asks for code changes.
+Use the running eCommerce Promotion Cockpit app API for product, campaign, and campaign-image work in this repo. Do not edit source files for app data tasks unless the user explicitly asks for code changes.
 
 Before API work, read `setup.md` in this skill folder and follow its validation steps. The expected app URL is `http://localhost:3000`.
 
@@ -28,7 +28,6 @@ Workflow:
 
 Boundaries:
 
-- Do not require MCP setup for this skill workflow.
 - Do not call `POST /api/campaign-opportunities` or `POST /api/campaigns/generate`. Those endpoints exist for the app's in-UI backend Codex SDK demo; this skill should let Codex App be the agent.
 - Do not set `CODEX_GATEWAY=fake` or `IMAGE_GENERATION_MODE=fake`.
 - Do not start, stop, or restart the app server. The user owns local setup and app startup.

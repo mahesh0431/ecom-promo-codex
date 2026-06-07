@@ -68,7 +68,7 @@ Expected first-run flow:
 5. Enter offer terms and click `Generate`.
 6. Review saved campaign details and generated images.
 
-For V1 voice control, start voice mode in the app after signing in and allow microphone access when your browser asks.
+For optional voice control, start voice mode in the app after signing in and allow microphone access when your browser asks.
 
 ## Deterministic Local Mode
 
@@ -106,7 +106,7 @@ pnpm db:verify
 
 Codex App can use the checked-in repo skill at `.agents/skills/promo-campaign-studio`.
 
-The skill does not require MCP setup. Follow the README setup, start the app yourself, then ask Codex to use the Promo Campaign Studio skill. The skill reads `.agents/skills/promo-campaign-studio/setup.md`, verifies `.env`, `OPENAI_API_KEY`, the running app, and seeded data, then logs into the local app API with the seeded demo account.
+After the app is running locally, ask Codex App to use the checked-in skill. The skill follows `.agents/skills/promo-campaign-studio/setup.md`, checks `.env`, `OPENAI_API_KEY`, the local app, and seeded data, then signs in with the seeded demo account and works through the app APIs.
 
 For this skill workflow, Codex App is the agent. It reads product API data, decides recommendations itself, and saves Codex App-authored campaign content through `POST /api/campaigns`. It should not call `/api/campaign-opportunities` or `/api/campaigns/generate`, because those routes start the app's backend Codex SDK agent for the in-app UI demo.
 

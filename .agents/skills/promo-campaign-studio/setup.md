@@ -1,4 +1,4 @@
-# Promo Campaign Studio API Setup
+# eCommerce Promotion Cockpit API Setup
 
 Use this setup note before operating the demo through app APIs.
 
@@ -48,7 +48,7 @@ Check health:
 curl -s http://localhost:3000/api/health
 ```
 
-If the app API is not reachable, stop. Say this local demo skill needs the Promo Campaign Studio dev server already running at `http://localhost:3000`, and ask the user to follow the README setup before retrying.
+If the app API is not reachable, stop. Say this local demo skill needs the eCommerce Promotion Cockpit dev server already running at `http://localhost:3000`, and ask the user to follow the README setup before retrying.
 
 ## Login
 

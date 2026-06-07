@@ -1,10 +1,10 @@
-# Retail Promo Agent
+# eCommerce Promotion Cockpit
 
 ## Idea
 
-Retail Promo Agent helps an eCommerce team find products that need campaign attention and create a simple promo campaign with Codex.
+The eCommerce Promotion Cockpit app helps an eCommerce team find products that need campaign attention and create a simple promo campaign with Codex.
 
-Many promotion workflows start from a blank brief or a rushed guess. Retail Promo Agent starts from product and sales data. Codex inspects that context through a small read-only MCP layer, identifies products with signals such as high stock and low recent sales, explains why they need attention, and helps create a promo campaign for the selected product.
+Many promotion workflows start from a blank brief or a rushed guess. The eCommerce Promotion Cockpit app starts from product and sales data. Codex inspects that context through a small read-only MCP layer, identifies products with signals such as high stock and low recent sales, explains why they need attention, and helps create a promo campaign for the selected product.
 
 A promo campaign is more than a caption. It includes the offer terms the business needs to run: discount, quantity limit, campaign content, image prompt, and generated image variants.
 
@@ -24,7 +24,7 @@ The product should feel like a focused workflow, not a generic chatbot. The user
 10. Codex generates campaign content and image prompts from the product context and offer terms.
 11. The backend generates the initial image variants, then saves and displays the campaign.
 12. The campaign detail page can generate additional image variants later.
-13. In V1, the user can start voice control and speak through the same workflow.
+13. The user can optionally start voice control and speak through the same workflow.
 
 ## Campaign Output
 
@@ -38,17 +38,17 @@ A generated campaign can include:
 - image prompt;
 - generated image variants.
 
-## Product Evolution
+## Demo Scope
 
-**V0: Instagram Promo Demo**
+**Core campaign workflow**
 
 A local demo app that proves auth, persistence, Codex SDK usage, read-only MCP tools for product context, promo campaign creation, and OpenAI image generation.
 
-**V1: Realtime Voice**
+**Voice control**
 
 Let users control the existing workflow by voice: open products, review recommendations, create campaigns, set offer terms, and generate campaign creative.
 
-**V2: Codex App Skill**
+**Codex App skill**
 
 Make the workflow available inside Codex App through a repo skill that calls the local app APIs, with the app API as the system of record.
 
