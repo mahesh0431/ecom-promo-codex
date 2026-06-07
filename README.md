@@ -142,6 +142,12 @@ When the skill creates images, it should fetch the saved image from the app and 
 
 The skill should stop and ask you to follow this README setup if `.env`, `OPENAI_API_KEY`, seeded data, login, or the local server is missing. It should not start the server, run setup, or switch to fake mode.
 
+## Developer Workflow
+
+Pull requests run deterministic CI through GitHub Actions: lint, typecheck, tests, and build. The repo also includes a Codex PR review workflow that runs `openai/codex-action@v1` against a generated PR patch and posts Codex feedback as a PR comment.
+
+To enable Codex PR review, add `OPENAI_API_KEY` as a GitHub Actions repository secret. Codex review runs from the trusted workflow context on non-draft PRs opened from this repo, so forked PRs do not receive the secret. CI should be treated as the merge gate; Codex review is an additional reviewer for bugs, workflow regressions, and demo-risk issues.
+
 ## Docs
 
 - [Vision](VISION.md) and [Architecture](ARCHITECTURE.md) explain the idea and technical shape.
