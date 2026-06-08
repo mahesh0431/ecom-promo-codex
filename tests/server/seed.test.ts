@@ -1,9 +1,29 @@
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { describe, expect, test } from "vitest";
 
-import { seedDemoData } from "../../prisma/seed";
+import { isDirectScriptRun, seedDemoData } from "../../prisma/seed";
 import { prisma } from "@/server/db/client";
 
 describe("seed data", () => {
+  test("detects direct execution when the project path contains spaces", () => {
+    const scriptPath = join(process.cwd(), "path with spaces", "seed.ts");
+
+    expect(isDirectScriptRun(pathToFileURL(scriptPath).href, scriptPath)).toBe(
+      true
+    );
+    expect(
+      isDirectScriptRun(pathToFileURL(scriptPath).href, undefined)
+    ).toBe(false);
+    expect(
+      isDirectScriptRun(
+        pathToFileURL(scriptPath).href,
+        join(process.cwd(), "different-seed.ts")
+      )
+    ).toBe(false);
+  });
+
   test("can be rerun without duplicating demo rows", async () => {
     await prisma.campaignImage.deleteMany();
     await prisma.campaign.deleteMany();
