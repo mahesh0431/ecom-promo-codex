@@ -6,6 +6,8 @@ The eCommerce Promotion Cockpit app is a small eCommerce demo where a Codex SDK-
 
 The app is intentionally narrow. It is not a generic chatbot and it is not trying to become a commerce platform. It is one practical workflow: look at product data, explain the recommendation, create the campaign, and save the result.
 
+For the UI exploration, I used Codex App's image generation capability to create visual reference images for how the product experience could look. I shortlisted the strongest directions and used those images to shape the final UX/UI for the dashboard, recommendation popup, product detail, and campaign create/view screens. The shortlisted references live in [docs/product/dashboard](docs/product/dashboard/README.md). They are design references, not generated application code.
+
 ## Why This Exists
 
 Most promotion workflows start with a blank brief or a rushed guess. This demo starts with product and sales data. A Codex SDK-powered agent inspects that context through small read-only MCP tools, recommends products that need campaign attention, and helps generate the campaign once the user chooses the offer terms.
@@ -19,6 +21,7 @@ The point is to show the Codex SDK used as an agent inside a real application wo
 - Read-only MCP tools for backend Codex product context.
 - A Codex SDK agent for promotion suggestions and campaign generation.
 - OpenAI image generation for campaign variants.
+- Codex App image-generated UI references, shortlisted and used to shape the final UX/UI direction.
 - Optional realtime voice control for the same UI workflow.
 - A repo-scoped Codex App skill that can operate the local app APIs.
 - A simple Next.js UI built with Tailwind CSS and shadcn-style components.

@@ -1,6 +1,6 @@
 # Dashboard References
 
-These images are visual references only. They are not implementation plans.
+These images are visual references only. During UI exploration, Codex App's image generation capability was used to create multiple directions for how the product experience could look. The strongest directions were shortlisted here and used to shape the final UX/UI for the dashboard, recommendation popup, product detail, and campaign create/view screens. They are not implementation plans or generated application code.
 
 ## Current References
 
