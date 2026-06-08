@@ -33,12 +33,6 @@ The point is to show the Codex SDK used as an agent inside a real application wo
 
 This sample intentionally hardcodes the OpenAI models so the demo stays easy to review: `gpt-5.5` for the backend Codex SDK agent, `gpt-image-2` for campaign images, and `gpt-realtime-2` for voice.
 
-## Reviewer Path
-
-The primary demo path is the in-app flow: UI actions call `/api/campaign-opportunities` and `/api/campaigns/generate`, the backend runs the Codex SDK agent with read-only MCP tools, and the app validates and saves the resulting campaign and image records.
-
-The Codex App skill is a second path. In that workflow, Codex App itself is the agent, reads product data through local app APIs, writes the campaign content, and saves it through the app API.
-
 ## The Demo Flow
 
 1. Sign in with the seeded demo account.
