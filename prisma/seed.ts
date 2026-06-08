@@ -1,3 +1,6 @@
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { prisma } from "@/server/db/client";
 import { hashPassword } from "@/server/auth/password";
 
@@ -11,7 +14,7 @@ type SeedProduct = {
   priorMonthUnits: number;
 };
 
-const DEMO_EMAIL = "demo@promo.test";
+export const DEMO_EMAIL = "demo@promo.test";
 const DEMO_PASSWORD = "demo-password";
 
 const seedProducts: SeedProduct[] = [
@@ -106,6 +109,14 @@ const seedProducts: SeedProduct[] = [
     priorMonthUnits: 15
   }
 ];
+
+export const EXPECTED_SEED_PRODUCT_COUNT = seedProducts.length;
+export const EXPECTED_SEED_PRODUCT_SALE_COUNT = seedProducts.length * 4;
+export const EXPECTED_CURRENT_MONTH_UNITS = seedProducts.reduce(
+  (total, product) => total + product.currentMonthUnits,
+  0
+);
+export const SEED_PRODUCT_SKUS = seedProducts.map((product) => product.sku);
 
 export async function seedDemoData() {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
@@ -212,7 +223,11 @@ async function main() {
   console.log(`seeded products: ${result.products.length}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+export function isDirectScriptRun(metaUrl: string, argvPath = process.argv[1]) {
+  return Boolean(argvPath) && fileURLToPath(metaUrl) === resolve(argvPath);
+}
+
+if (isDirectScriptRun(import.meta.url)) {
   main()
     .catch((error) => {
       console.error(error);
